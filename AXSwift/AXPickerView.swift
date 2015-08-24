@@ -1099,7 +1099,7 @@ extension AXPickerView: UICollectionViewDelegateFlowLayout, UICollectionViewDele
     }
     
     class func showImagePickerInWindow(window: UIWindow, animated: Bool, configuration: AXConfiguration? = nil) -> Void {
-        
+        self.showImagePickerInView(window, animated: animated, configuration: configuration)
     }
     
     class func showImagePickerInView(view: UIView, animated: Bool, configuration: AXConfiguration? = nil) -> Void {

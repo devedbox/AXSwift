@@ -84,10 +84,10 @@ class ViewController: UIViewController {
 //        let HUD = AXPracticalHUD.showHUDInView(view, animated: true)
 //        HUD.translucent = true
         
-        AXPracticalHUD.sharedHUD.cornerRadius = 0.0
-        AXPracticalHUD.sharedHUD.margin = 0.0
+//        AXPracticalHUD.sharedHUD.cornerRadius = 0.0
+//        AXPracticalHUD.sharedHUD.margin = 0.0
         AXPracticalHUD.sharedHUD.lockBackground = false
-//        AXPracticalHUD.sharedHUD.dimBackground = true
+        AXPracticalHUD.sharedHUD.dimBackground = true
     }
     
     override func viewDidAppear(animated: Bool) {
@@ -137,20 +137,20 @@ class ViewController: UIViewController {
         if sender.tag == 1 {
             AXPickerView.showImagePickerInView(view.window!, animated: true)
         } else if sender.tag == 2 {
-            AXPracticalHUD.sharedHUD.showText(inView: self.view, text: "Bonjour", detail: "Give you a message") { (HUD) -> Void in
-                HUD.translucent = true
-                HUD.position  = .Top
-                HUD.animation = .FlipIn
-            }
-//            AXPracticalHUD.sharedHUD.showSimple(inView: view, text: "Bonjour", detail: "Give you a message", configuration: { (HUD) -> Void in
+//            AXPracticalHUD.sharedHUD.showText(inView: self.view, text: "Bonjour", detail: "Give you a message") { (HUD) -> Void in
 //                HUD.translucent = true
+//                HUD.position  = .Top
+//                HUD.animation = .FlipIn
+//            }
+            AXPracticalHUD.sharedHUD.showSimple(inView: view, text: "Bonjour", detail: "Give you a message", configuration: { (HUD) -> Void in
+                HUD.translucent = true
 //                HUD.translucentStyle = .Light
 //                HUD.textColor = UIColor.blackColor()
 //                HUD.detailTextColor = UIColor.blackColor()
 //                HUD.activityIndicatorColor = UIColor.blackColor()
-//                HUD.position  = .Center
-//                HUD.animation = .Fade
-//            })
+                HUD.position  = .Center
+                HUD.animation = .Fade
+            })
         } else if sender.tag == 3 {
             AXPracticalHUD.sharedHUD.hide(animated: true)
         }

@@ -873,6 +873,8 @@ public class AXPracticalHUD: UIView {
                     self.alpha = 1.0
                     }, completion: nil)
             }
+            // MARK: TODO
+//            UIInterpolatingMotionEffect
         }
         else {
             alpha = 1.0
