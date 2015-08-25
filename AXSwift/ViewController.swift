@@ -150,7 +150,9 @@ class ViewController: UIViewController {
 //                HUD.activityIndicatorColor = UIColor.blackColor()
                 HUD.position  = .Center
                 HUD.animation = .Fade
+                HUD.hide(animated: true, afterDelay: 2.0)
             })
+            
         } else if sender.tag == 3 {
             AXPracticalHUD.sharedHUD.hide(animated: true)
         }

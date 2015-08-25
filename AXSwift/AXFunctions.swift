@@ -46,3 +46,15 @@ public func getMutableTextSize(text: NSString?, font: UIFont, maxSize: CGSize) -
     }
     return CGSizeZero
 }
+
+public func __window() -> UIWindow? {
+    return UIApplication.sharedApplication().delegate?.window ?? nil
+}
+
+public func __rootViewController() -> UIViewController? {
+    return UIApplication.sharedApplication().delegate?.window??.rootViewController
+}
+
+public func filePath(withBundleName bundleName:String, fileName: String) -> String {
+    return bundleName+".bundle"+"/"+fileName
+}

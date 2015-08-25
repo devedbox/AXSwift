@@ -76,3 +76,14 @@ extension ALAsset {
 public func ==(lhs: ALAsset, rhs: ALAsset) -> Bool {
     return lhs.valueForProperty(ALAssetPropertyAssetURL) as! String == rhs.valueForProperty(ALAssetPropertyAssetURL) as! String
 }
+
+extension UIImagePickerController {
+    class func requestAuthorizationOfCamera(completion completion: (() -> Void), failure: (() -> Void)) -> Void {
+        let status: AVAuthorizationStatus = AVCaptureDevice.authorizationStatusForMediaType(AVMediaTypeVideo)
+        if status == .Denied || status == .Restricted {
+            failure()
+        } else {
+            completion()
+        }
+    }
+}

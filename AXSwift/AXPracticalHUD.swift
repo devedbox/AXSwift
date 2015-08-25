@@ -53,12 +53,14 @@ public enum AXPracticalHUDTranslucentStyle: Int {
 public typealias AXPracticalHUDCompletionBlock = () -> Void
 
 private let padding: CGFloat = 4.0
+private let maxMovement = 14.0
 private let fontSize: CGFloat = 14.0
 private let detailFontSize: CGFloat = 12.0
 private let defaultMargin: CGFloat = 15.0
 
 public class AXPracticalHUD: UIView {
     // prperties
+    public var restoreEnabled: Bool = false
     public var lockBackground: Bool = true
     public var size: CGSize = CGSizeZero
     public var square: Bool     = false
@@ -138,6 +140,12 @@ public class AXPracticalHUD: UIView {
     public var position: AXPracticalHUDPosition = .Center {
         didSet {
             executeOnMainThread { () -> Void in
+                if self.position == .Center {
+                    self.contentView.motionEffects = [self.xMotionEffect, self.yMotionEffect]
+                } else {
+                    self.contentView.removeMotionEffect(self.xMotionEffect)
+                    self.contentView.removeMotionEffect(self.yMotionEffect)
+                }
                 self.setNeedsLayout()
                 self.setNeedsDisplay()
             }
@@ -259,6 +267,18 @@ public class AXPracticalHUD: UIView {
         return label
     } as! UILabel
     private var indicator: UIView?
+    private let xMotionEffect = { () -> UIInterpolatingMotionEffect in
+        let motionEffect = UIInterpolatingMotionEffect(keyPath: "center.x", type: .TiltAlongHorizontalAxis)
+        motionEffect.minimumRelativeValue = -maxMovement
+        motionEffect.maximumRelativeValue = maxMovement
+        return motionEffect
+    }()
+    private let yMotionEffect = { () -> UIInterpolatingMotionEffect in
+        let motionEffect = UIInterpolatingMotionEffect(keyPath: "center.y", type: .TiltAlongVerticalAxis)
+        motionEffect.minimumRelativeValue = -maxMovement
+        motionEffect.maximumRelativeValue = maxMovement
+        return motionEffect
+        }()
     private lazy var contentView: AXPracticalHUDContentView = get { [unowned self] () -> AnyObject? in
         let view = AXPracticalHUDContentView(frame: CGRectZero)
         view.layer.cornerRadius = self.cornerRadius
@@ -662,6 +682,12 @@ public class AXPracticalHUD: UIView {
     override public func didMoveToSuperview() {
         super.didMoveToSuperview()
         if superview != nil {
+            if position == .Center {
+                contentView.motionEffects = [xMotionEffect, yMotionEffect]
+            } else {
+                contentView.removeMotionEffect(xMotionEffect)
+                contentView.removeMotionEffect(yMotionEffect)
+            }
             updateForCurrentOrientationAnimated(false)
         }
     }
@@ -787,7 +813,6 @@ public class AXPracticalHUD: UIView {
     func show(animated animated: Bool, executingBlock block: dispatch_block_t? = nil, onQueue queue: dispatch_queue_t! = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), completion:AXPracticalHUDCompletionBlock? = nil) -> Void
     {
         func showAnimated(animated: Bool) -> Void {
-            assert(NSThread.isMainThread(), "AXPracticalHUD needs to be accessed on the main thread.")
             self.animated = animated
             // If the grace time is set postpone the HUD display
             if graceTime > 0.0 {
@@ -809,12 +834,13 @@ public class AXPracticalHUD: UIView {
                 })
             })
         }
-        showAnimated(animated)
+        executeOnMainThread { () -> Void in
+            showAnimated(animated)
+        }
     }
     
-    func hide(animated animated: Bool, afterDelay delay:NSTimeInterval? = nil) -> Void {
+    func hide(animated animated: Bool, afterDelay delay:NSTimeInterval? = nil, completion:AXPracticalHUDCompletionBlock? = nil) -> Void {
         func hideAnimated(animated: Bool) -> Void {
-            assert(NSThread.isMainThread(), "AXPracticalHUD needs to be accessed on the main thread.")
             self.animated = animated;
             // If the minShow time is set, calculate how long the hud was shown,
             // and pospone the hiding operation if necessary
@@ -826,14 +852,23 @@ public class AXPracticalHUD: UIView {
                 } 
             }
             // ... otherwise hide the HUD immediately
-            hidingAnimated(animated)
+            if NSThread.isMainThread() {
+                hidingAnimated(animated)
+            } else {
+                dispatch_async(dispatch_get_main_queue(), { () -> Void in
+                    self.hidingAnimated(animated)
+                });
+            }
         }
+        self.completion = completion
         if let aDelay = delay {
             dispatch_after(dispatch_time(DISPATCH_TIME_NOW, Int64(aDelay * Double(NSEC_PER_SEC))), dispatch_get_main_queue(), { () -> Void in
                 hideAnimated(animated)
             })
         } else {
-            hideAnimated(animated)
+            executeOnMainThread({ () -> Void in
+                hideAnimated(animated)
+            })
         }
     }
     
@@ -845,7 +880,9 @@ public class AXPracticalHUD: UIView {
         progressing = true
         NSThread.detachNewThreadSelector("executing", toTarget: self, withObject: nil)
         // Show HUD view
-        show(animated: animated)
+        executeOnMainThread { () -> Void in
+            self.show(animated: animated)
+        }
     }
     
     //MARK: - Helpers
@@ -869,12 +906,10 @@ public class AXPracticalHUD: UIView {
                     self.contentView.frame = self.contentFrame
                     }, completion: nil)
             } else {
-                UIView.animateWithDuration(0.3, delay: 0.0, options: UIViewAnimationOptions(rawValue: 7), animations: { () -> Void in
+                UIView.animateWithDuration(0.25, delay: 0.15, options: UIViewAnimationOptions(rawValue: 7), animations: { () -> Void in
                     self.alpha = 1.0
                     }, completion: nil)
             }
-            // MARK: TODO
-//            UIInterpolatingMotionEffect
         }
         else {
             alpha = 1.0
@@ -900,7 +935,7 @@ public class AXPracticalHUD: UIView {
                     self.alpha = 0.02
                     }, completion: nil)
             } else {
-                UIView.animateWithDuration(0.3, delay: 0.0, options: UIViewAnimationOptions(rawValue: 7), animations: { () -> Void in
+                UIView.animateWithDuration(0.25, delay: 0.0, options: UIViewAnimationOptions(rawValue: 7), animations: { () -> Void in
                     self.alpha = 0.02
                     }, completion: { (finished) -> Void in
                         self.completed()
@@ -966,6 +1001,9 @@ public class AXPracticalHUD: UIView {
         alpha = 0.0
         if removeFromSuperViewOnHide {
             removeFromSuperview()
+        }
+        if restoreEnabled {
+            restore()
         }
         transform = CGAffineTransformIdentity
         contentView.transform = CGAffineTransformIdentity
@@ -1121,39 +1159,77 @@ extension AXPracticalHUD {
         return _storage.sharedInstance
     }
     
+    private func __show(inView view: UIView, mode: AXPracticalHUDMode, text: String? = nil, detail: String?, customView: UIView? = nil, configuration: ((HUD: AXPracticalHUD) -> Void)? = nil) -> Void
+    {
+        executeOnMainThread { () -> Void in
+            self.mode = mode
+            self.text = text
+            self.customView = customView
+            self.detailText = detail
+            view.addSubview(self)
+            configuration?(HUD: self)
+            self.show(animated: true)
+        }
+    }
+    
     func showPie(inView view: UIView, text: String? = nil, detail: String? = nil, configuration: ((HUD: AXPracticalHUD) -> Void)? = nil) -> Void {
-        mode = .Determinate
-        self.text = text
-        detailText = detail
-        view.addSubview(self)
-        configuration?(HUD: self)
-        show(animated: true)
+        __show(inView: view, mode: .Determinate, text: text, detail: detail, customView: customView, configuration: configuration)
     }
     
     func showProgress(inView view: UIView, text: String? = nil, detail: String? = nil, configuration: ((HUD: AXPracticalHUD) -> Void)? = nil) -> Void {
-        mode = .DeterminateHorizontalBar
-        self.text = text
-        detailText = detail
-        view.addSubview(self)
-        configuration?(HUD: self)
-        show(animated: true)
+        __show(inView: view, mode: .DeterminateHorizontalBar, text: text, detail: detail, customView: customView, configuration: configuration)
     }
     
-    func showText(inView view: UIView, text: String, detail: String? = nil, configuration: ((HUD: AXPracticalHUD) -> Void)? = nil) -> Void {
-        mode = .Text
-        self.text = text
-        detailText = detail
-        view.addSubview(self)
-        configuration?(HUD: self)
-        show(animated: true)
+    func showText(inView view: UIView, text: String = "加载中", detail: String? = nil, configuration: ((HUD: AXPracticalHUD) -> Void)? = nil) -> Void {
+        __show(inView: view, mode: .Text, text: text, detail: detail, customView: customView, configuration: configuration)
     }
     
     func showSimple(inView view: UIView, text: String? = nil, detail: String? = nil, configuration: ((HUD: AXPracticalHUD) -> Void)? = nil) -> Void {
-        mode = .Indeterminate
-        self.text = text
-        detailText = detail
-        view.addSubview(self)
-        configuration?(HUD: self)
-        show(animated: true)
+        __show(inView: view, mode: .Indeterminate, text: text, detail: detail, customView: customView, configuration: configuration)
+    }
+    
+    func showError(inView view: UIView, text: String? = nil, detail:String? = nil, configuration: ((HUD: AXPracticalHUD) -> Void)? = nil) -> Void {
+        executeOnMainThread { () -> Void in
+            let imageView = UIImageView(image: UIImage(named: filePath(withBundleName: "AXPracticalHUD", fileName: "ax_hud_error")))
+            self.__show(inView: view, mode: .CustomView, text: text, detail: detail, customView: imageView, configuration: configuration)
+        }
+    }
+    
+    func showSuccess(inView view: UIView, text: String? = nil, detail:String? = nil, configuration: ((HUD: AXPracticalHUD) -> Void)? = nil) -> Void {
+        executeOnMainThread { () -> Void in
+            let imageView = UIImageView(image: UIImage(named: filePath(withBundleName: "AXPracticalHUD", fileName: "ax_hud_success")))
+            self.__show(inView: view, mode: .CustomView, text: text, detail: detail, customView: imageView, configuration: configuration)
+        }
+    }
+}
+
+extension AXPracticalHUD {
+    func restore() -> Void {
+        restoreEnabled = false
+        lockBackground = false
+        square     = false
+        margin = defaultMargin
+        offsetX = 0.0
+        offsetY = 0.0
+        minSize  = CGSizeZero
+        graceTime = 0.0
+        animation = .Fade
+        completion = nil
+        minShowTime = 0.5
+        dimBackground = false
+        contentInsets = UIEdgeInsetsMake(15.0, 15.0, 15.0, 15.0)
+        opacity = 0.8
+        color = nil
+        endColor = nil
+        translucent = false
+        translucentStyle = .Dark
+        text = nil
+        position = .Center
+        progress = 0.0
+        detailText = nil
+        customView = nil
+        cornerRadius = 8.0
+        activityIndicatorColor = UIColor.whiteColor()
+        removeFromSuperViewOnHide = false
     }
 }

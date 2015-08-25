@@ -19,10 +19,10 @@ private let _AXAlbumTableViewCellLeftMargin: CGFloat = 20
 @objc protocol AXImagePickerControllerDelegate {
     optional func imagePickerController(picker: AXImagePickerController, previewWithImages images: [UIImage]) -> Void
     optional func imagePickerController(picker: AXImagePickerController, selectedImages images: [UIImage]) -> Void
-    optional func imagePickerControllerDidCancel(picker: AXImagePickerController) -> Void
+    optional func imagePickerControllerCanceled(picker: AXImagePickerController) -> Void
 }
 @available(iOS 7.0, *)
-class AXImagePickerController: UINavigationController {
+public class AXImagePickerController: UINavigationController {
     // MARK : - Customs
     private class _AXAlbumTableViewCell: UITableViewCell {
         lazy var albumView: UIImageView = {
@@ -304,7 +304,7 @@ class AXImagePickerController: UINavigationController {
         @objc private func cancel(sender: AnyObject) -> Void {
             if let _ = presentingViewController {
                 if let picker = navigationController as? AXImagePickerController {
-                    picker.axDelegate?.imagePickerControllerDidCancel?(picker)
+                    picker.axDelegate?.imagePickerControllerCanceled?(picker)
                 }
                 self.dismissViewControllerAnimated(true, completion: nil)
             }
@@ -743,6 +743,11 @@ class AXImagePickerController: UINavigationController {
                 view.addSubview(imageView)
                 automaticallyAdjustsScrollViewInsets = false
             }
+            
+            private override func viewWillAppear(animated: Bool) {
+                
+            }
+            
             override func viewDidLayoutSubviews() {
                 super.viewDidLayoutSubviews()
             }
@@ -1019,6 +1024,8 @@ class AXImagePickerController: UINavigationController {
     private var _selectedImages: [UIImage]? {
         return get({ [unowned self]() -> AnyObject? in
             var images: [UIImage] = []
+            let HUD = AXPracticalHUD.showHUDInView(self.view, animated: true)
+            HUD.translucent = true
             if #available(iOS 8.0, *) {
                 for (_, asset) in (self._selectedAssets as! [PHAsset]).enumerate() {
                     PHImageManager.defaultManager().requestImageForAsset(asset, targetSize: CGSizeMake(CGFloat(asset.pixelWidth), CGFloat(asset.pixelHeight)), contentMode: PHImageContentMode.AspectFill, options: get({ () -> AnyObject? in
@@ -1036,6 +1043,7 @@ class AXImagePickerController: UINavigationController {
                     images.append(UIImage(CGImage: asset.defaultRepresentation().fullResolutionImage().takeUnretainedValue()))
                 }
             }
+            HUD.hide(animated: true)
             if images.count <= 0 {
                 return nil
             }
@@ -1055,7 +1063,7 @@ class AXImagePickerController: UINavigationController {
         super.init(navigationBarClass: navigationBarClass, toolbarClass: toolbarClass)
     }
 
-    required init?(coder aDecoder: NSCoder) {
+    required public init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
         fatalError("init(coder:) has not been implemented")
     }
@@ -1077,7 +1085,7 @@ class AXImagePickerController: UINavigationController {
         removeObserver(self, forKeyPath: "_selectedImageInfo")
     }
     
-    override func observeValueForKeyPath(keyPath: String?, ofObject object: AnyObject?, change: [String : AnyObject]?, context: UnsafeMutablePointer<Void>) {
+    public override func observeValueForKeyPath(keyPath: String?, ofObject object: AnyObject?, change: [String : AnyObject]?, context: UnsafeMutablePointer<Void>) {
         if keyPath == "_selectedImageInfo" {
             if let selectedImageInfo = change?[NSKeyValueChangeNewKey] {
                 if selectedImageInfo.count > 0 {
@@ -1089,11 +1097,11 @@ class AXImagePickerController: UINavigationController {
         }
     }
     
-    override func viewDidLoad() {
+    public override func viewDidLoad() {
         super.viewDidLoad()
     }
     
-    override func viewWillAppear(animated: Bool) {
+    public override func viewWillAppear(animated: Bool) {
         super.viewWillAppear(animated)
         // FIXME:
         /*
@@ -1125,6 +1133,31 @@ class AXImagePickerController: UINavigationController {
                 assets.removeAtIndex(index)
                 _selectedImageInfo[key] = assets
                 break
+            }
+        }
+    }
+}
+
+extension AXImagePickerController {// Available for application of authorization
+//    var picker: UIImagePickerController? = nil
+    class func requestAuthorization(completion completion: (() -> Void), failure: (() -> Void)) -> Void {
+        if #available(iOS 8.0, *) {
+            if PHPhotoLibrary.authorizationStatus() == .Authorized {
+                completion()
+            } else {
+                PHPhotoLibrary.requestAuthorization({ (status) -> Void in
+                    if status == .Authorized {
+                        completion()
+                    } else {
+                        failure()
+                    }
+                })
+            }
+        } else {
+            if ALAssetsLibrary.authorizationStatus() == .Authorized {
+                completion()
+            } else {
+                failure()
             }
         }
     }

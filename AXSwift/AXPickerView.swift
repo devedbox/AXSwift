@@ -76,60 +76,6 @@ protocol AXPickerViewDataSource: UIPickerViewDataSource {
     
 }
 
-@available(iOS 7.0, *)
-extension AXPickerView: UIPickerViewDelegate, UIPickerViewDataSource {
-    class func showInWindow(window: UIWindow, animated:Bool, style:AXPickerViewStyle = .Normal, items:[String]? = nil, title: String? = nil, tips: String? = nil, configuration: AXConfiguration? = nil, completion: AXCompletion? = nil, revoking: AXRevoking? = nil, executing: AXExecuting? = nil) -> () {
-        showInView(window, animated: animated, style: style, items: items, title: title, tips: tips, configuration: configuration, completion: completion, revoking: revoking, executing: executing)
-    }
-    
-    class func showInWindow(window: UIWindow, animated:Bool, style:AXPickerViewStyle = .Normal, items:[String]? = nil, title: String? = nil, customView: UIView? = nil, configuration: AXConfiguration? = nil, completion: AXCompletion? = nil, revoking: AXRevoking? = nil, executing: AXExecuting? = nil) -> () {
-        showInView(window, animated: animated, style: style, items: items, title: title, customView: customView, configuration: configuration, completion: completion, revoking: revoking, executing: executing)
-    }
-    
-    @available(iOS 7.0, *)
-    class func showInView(view: UIView, animated: Bool, style:AXPickerViewStyle = .Normal, items:[String]? = nil, title: String? = nil, tips: String? = nil, configuration: AXConfiguration? = nil, completion: AXCompletion? = nil, revoking: AXRevoking? = nil, executing: AXExecuting? = nil) -> () {
-        let picker = AXPickerView(style: style, items: items)
-        configuration?(pickerView: picker)
-        picker.view = view
-        picker.title = title
-        
-        picker.sizeToFit()
-        
-        if let tip = tips {
-            let string = NSString(string: tip)
-            let font = UIFont.systemFontOfSize(12)
-            let usedSize = string.boundingRectWithSize(CGSizeMake(picker.bounds.width, CGFloat.max), options: NSStringDrawingOptions.UsesLineFragmentOrigin, attributes: [NSFontAttributeName : font], context: nil)
-            
-            let label = UILabel(frame: CGRectMake(0, 0, ceil(usedSize.width), ceil(usedSize.height)))
-            label.textAlignment = NSTextAlignment.Left
-            label.lineBreakMode = NSLineBreakMode.ByTruncatingTail
-            label.numberOfLines = 0
-            label.backgroundColor = UIColor.clearColor()
-            label.font = font
-            label.textColor = AXDefaultTintColor.colorWithAlphaComponent(0.5)
-            label.text = tip
-            
-            picker.customView = label
-        }
-        
-        picker.show(animated: animated, completion: completion, revoking: revoking, executing: executing)
-    }
-    
-    class func showInView(view: UIView, animated: Bool, style:AXPickerViewStyle = .Normal, items:[String]? = nil, title: String? = nil, customView: UIView? = nil, configuration: AXConfiguration? = nil, completion: AXCompletion? = nil, revoking: AXRevoking? = nil, executing: AXExecuting? = nil) -> () {
-        let picker = AXPickerView(style: style, items: items)
-        
-        if let config = configuration {
-            config(pickerView: picker)
-        }
-        
-        picker.view = view
-        picker.title = title
-        picker.customView = customView
-        
-        picker.show(animated: animated, completion: completion, revoking: revoking, executing: executing)
-    }
-}
-
 private class CALayer_ax: CALayer, AXLayerTag {
     
     typealias TagType = Int
@@ -139,7 +85,7 @@ private class CALayer_ax: CALayer, AXLayerTag {
 
 @available(iOS 7.0, *)
 
-class AXPickerView: UIView {
+public class AXPickerView: UIView {
     //MARK: - Internal Properties
     var items = [String]?() {
         didSet {
@@ -273,6 +219,27 @@ class AXPickerView: UIView {
         didSet{
             if style == .CommonPicker {
                 _commonPicker?.dataSource = self.dataSource
+            }
+        }
+    }
+    
+    var assets: AnyObject? {
+        get {
+            if #available(iOS 8.0, *) {
+                return self._photoAssetsResult
+            } else {
+                return self._photoAssets
+            }
+        }
+        set {
+            if #available(iOS 8.0, *) {
+                if let value = newValue as? PHFetchResult {
+                    self._photoAssetsResult = value
+                }
+            } else {
+                if let value = newValue as? [ALAsset] {
+                    self._photoAssets = value
+                }
             }
         }
     }
@@ -430,7 +397,7 @@ class AXPickerView: UIView {
         initializer()
     }
 
-    required init?(coder aDecoder: NSCoder) {
+    required public init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
         
         initializer()
@@ -471,7 +438,7 @@ class AXPickerView: UIView {
     
     //MARK: - Override
     
-    override func drawRect(rect: CGRect) {
+    public override func drawRect(rect: CGRect) {
         super.drawRect(rect)
         
         guard let aStyle = style else {return}
@@ -600,13 +567,13 @@ class AXPickerView: UIView {
         resizingSelf()
     }
     
-    override func layoutSubviews() {
+    public override func layoutSubviews() {
         super.layoutSubviews()
         
         sizeToFit()
     }
     
-    override func sizeThatFits(size: CGSize) -> CGSize {
+    public override func sizeThatFits(size: CGSize) -> CGSize {
         var rightSize = super.sizeThatFits(size)
         rightSize.width = UIScreen.mainScreen().bounds.width
         
@@ -642,7 +609,7 @@ class AXPickerView: UIView {
         return rightSize
     }
     
-    override func willMoveToSuperview(newSuperview: UIView?) {
+    public override func willMoveToSuperview(newSuperview: UIView?) {
         super.willMoveToSuperview(newSuperview)
         
         if let mySuperView = newSuperview {
@@ -650,7 +617,7 @@ class AXPickerView: UIView {
         }
     }
     
-    override func didMoveToSuperview() {
+    public override func didMoveToSuperview() {
         super.didMoveToSuperview()
         
         if let _ = self.superview {
@@ -677,7 +644,7 @@ class AXPickerView: UIView {
         }
     }
     
-    override func observeValueForKeyPath(keyPath: String?, ofObject object: AnyObject?, change: [String : AnyObject]?, context: UnsafeMutablePointer<Void>) {
+    public override func observeValueForKeyPath(keyPath: String?, ofObject object: AnyObject?, change: [String : AnyObject]?, context: UnsafeMutablePointer<Void>) {
         if keyPath == "frame" {
             if let frame = change?[NSKeyValueChangeNewKey]?.CGRectValue {
                 if #available(iOS 8.0, *) {
@@ -739,6 +706,14 @@ class AXPickerView: UIView {
                         self?.transform = CGAffineTransformIdentity
                         
                         self?.delegate?.pickerViewDidHide?(self!)
+                        
+                        if let _self = self {
+                            if #available(iOS 8.0, *) {
+                                PHPhotoLibrary.sharedPhotoLibrary().unregisterChangeObserver(_self)
+                            } else {
+                                NSNotificationCenter.defaultCenter().removeObserver(_self)
+                            }
+                        }
                     }
                 })
         }
@@ -979,11 +954,11 @@ class AXPickerView: UIView {
     
     //MARK: - UIPickerViewDataSource
     
-    func numberOfComponentsInPickerView(pickerView: UIPickerView) -> Int {
+    public func numberOfComponentsInPickerView(pickerView: UIPickerView) -> Int {
         return (dataSource?.numberOfComponentsInPickerView(pickerView))!
     }
     
-    func pickerView(pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
+    public func pickerView(pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
         return (dataSource?.pickerView(pickerView, numberOfRowsInComponent: component))!
     }
 }
@@ -992,31 +967,67 @@ private let reusedIdentifier = "AXImagePickerCell"
 private let rightHeight: CGFloat = 220
 private let minWidth:CGFloat = 110
 
-//typealias AXImagePickerCompletion = (images: [UIImage]?, ) -> Void
+typealias AXImagePickerCompletion = (picker: AXPickerView, images: [UIImage]) -> Void
 
 let imagePickerExecuting: AXExecuting = {
     (title: String, index: Int, pickerView: AXPickerView) -> Void in
     
-//    let imagePickerController = UIImagePickerController()
-//    imagePickerController.delegate = pickerView
-    
-    let imagePickerController = AXImagePickerController()
+    let cameraPickerController = UIImagePickerController()
+    cameraPickerController.delegate = pickerView
     
     switch index {
     case 0:
-        if UIImagePickerController.isSourceTypeAvailable(.Camera) {
-//            imagePickerController.sourceType = .Camera
-            if let rootViewController = pickerView.window?.rootViewController {
-                rootViewController.presentViewController(imagePickerController, animated: true, completion: nil)
-            }
+        UIImagePickerController.requestAuthorizationOfCamera(completion: { () -> Void in
+                if UIImagePickerController.isSourceTypeAvailable(.Camera) {
+                    cameraPickerController.sourceType = .Camera
+                    if let rootViewController = pickerView.window?.rootViewController {
+                        rootViewController.presentViewController(cameraPickerController, animated: true, completion: nil)
+                    }
+                } else {
+                    if let window = __window() {
+                        AXPracticalHUD.sharedHUD.showError(inView: window, text: "相机不可用", detail: "请检查并重试", configuration: { (HUD) -> Void in
+                            HUD.translucent = true
+                            HUD.lockBackground = true
+                            HUD.dimBackground = true
+                            HUD.position  = .Center
+                            HUD.animation = .Fade
+                            HUD.restoreEnabled = true
+                            HUD.hide(animated: true, afterDelay: 2.0)
+                        })
+                    }
+                }
+            }) { () -> Void in
+                if let window = __window() {
+                    AXPracticalHUD.sharedHUD.showError(inView: window, text: "访问相机失败", detail: "请前往 设置->隐私->相机 允许应用访问相机", configuration: { (HUD) -> Void in
+                        HUD.translucent = true
+                        HUD.lockBackground = true
+                        HUD.dimBackground = true
+                        HUD.position  = .Center
+                        HUD.animation = .Fade
+                        HUD.restoreEnabled = true
+                        HUD.hide(animated: true, afterDelay: 4.0)
+                    })
+                }
         }
     case 1:
-        if UIImagePickerController.isSourceTypeAvailable(.PhotoLibrary) {
-//            imagePickerController.sourceType = .PhotoLibrary
-            if let rootViewController = pickerView.window?.rootViewController {
-                rootViewController.presentViewController(imagePickerController, animated: true, completion: nil)
+        AXImagePickerController.requestAuthorization(completion: { () -> Void in
+                if let rootViewController = __rootViewController() {
+                    let imagePickerController = AXImagePickerController()
+                    rootViewController.presentViewController(imagePickerController, animated: true, completion: nil)
+                }
+            }) { () -> Void in
+                if let window = __window() {
+                    AXPracticalHUD.sharedHUD.showError(inView: window, text: "访问相册失败", detail: "请前往 设置->隐私->照片 允许应用访问相册", configuration: { (HUD) -> Void in
+                        HUD.translucent = true
+                        HUD.lockBackground = true
+                        HUD.dimBackground = true
+                        HUD.position  = .Center
+                        HUD.animation = .Fade
+                        HUD.restoreEnabled = true
+                        HUD.hide(animated: true, afterDelay: 4.0)
+                    })
+                }
             }
-        }
     case 2:
         break
     default:
@@ -1025,103 +1036,105 @@ let imagePickerExecuting: AXExecuting = {
 }
 
 @available(iOS 7.0, *)
-extension AXPickerView: UICollectionViewDelegateFlowLayout, UICollectionViewDelegate, UICollectionViewDataSource, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-    private class AXImagePickerCell: UICollectionViewCell {
-        let label = {
-            () -> UILabel in
-            let lab = UILabel(frame: CGRectZero)
-            lab.backgroundColor = UIColor.clearColor()
-            lab.font = UIFont.systemFontOfSize(12)
-            lab.textColor = AXDefaultSelectedColor
-            lab.text = "已选择"
-            lab.sizeToFit()
-            lab.autoresizingMask = UIViewAutoresizing.FlexibleBottomMargin.union(UIViewAutoresizing.FlexibleLeftMargin).union(UIViewAutoresizing.FlexibleRightMargin).union(UIViewAutoresizing.FlexibleTopMargin)
-            lab.hidden = true
-            return lab
-            }()
-        
-        lazy var imageView: UIImageView! = {
-            return get() {
-                [unowned self]() -> AnyObject in
-                let imgView = UIImageView(frame: CGRectZero)
-                imgView.backgroundColor = UIColor.clearColor()
-                imgView.autoresizingMask = UIViewAutoresizing.FlexibleHeight.union(.FlexibleWidth).union(.FlexibleBottomMargin).union(.FlexibleRightMargin)
-                imgView.contentMode = UIViewContentMode.ScaleAspectFill
-                imgView.clipsToBounds = true
-                return imgView
-            } as! UIImageView
-        }()
-        
-        override init(frame: CGRect) {
-            super.init(frame: frame)
-            initializer()
-        }
-
-        required init?(coder aDecoder: NSCoder) {
-            super.init(coder: aDecoder)
-            initializer()
-        }
-        
-        override func prepareForReuse() {
-            super.prepareForReuse()
-            imageView?.image = nil
-        }
-        
-        override func layoutSubviews() {
-            super.layoutSubviews()
-            imageView.frame = self.contentView.bounds
-            var rect = label.frame
-            rect.origin.x = (imageView.bounds.width - rect.width) / 2
-            rect.origin.y = (imageView.bounds.height - rect.height) / 2
-            label.frame = rect
-        }
-        
-        override var selected: Bool {
-            get {
-                return super.selected
-            }
-            set {
-                super.selected = newValue
-                
-                label.hidden = !selected
-                if selected {
-                    imageView.alpha = 0.1
-                } else {
-                    imageView.alpha = 1.0
-                }
-            }
-        }
-        
-        private func initializer() -> Void {
-            addSubview(imageView)
-            addSubview(label)
-        }
+extension AXPickerView: UIPickerViewDelegate, UIPickerViewDataSource {
+    class func showInWindow(window: UIWindow, animated:Bool, style:AXPickerViewStyle = .Normal, items:[String]? = nil, title: String? = nil, tips: String? = nil, configuration: AXConfiguration? = nil, completion: AXCompletion? = nil, revoking: AXRevoking? = nil, executing: AXExecuting? = nil) -> () {
+        showInView(window, animated: animated, style: style, items: items, title: title, tips: tips, configuration: configuration, completion: completion, revoking: revoking, executing: executing)
     }
+    
+    class func showInWindow(window: UIWindow, animated:Bool, style:AXPickerViewStyle = .Normal, items:[String]? = nil, title: String? = nil, customView: UIView? = nil, configuration: AXConfiguration? = nil, completion: AXCompletion? = nil, revoking: AXRevoking? = nil, executing: AXExecuting? = nil) -> () {
+        showInView(window, animated: animated, style: style, items: items, title: title, customView: customView, configuration: configuration, completion: completion, revoking: revoking, executing: executing)
+    }
+    
+    @available(iOS 7.0, *)
+    class func showInView(view: UIView, animated: Bool, style:AXPickerViewStyle = .Normal, items:[String]? = nil, title: String? = nil, tips: String? = nil, configuration: AXConfiguration? = nil, completion: AXCompletion? = nil, revoking: AXRevoking? = nil, executing: AXExecuting? = nil) -> () {
+        let picker = AXPickerView(style: style, items: items)
+        configuration?(pickerView: picker)
+        picker.view = view
+        picker.title = title
+        
+        picker.sizeToFit()
+        
+        if let tip = tips {
+            let string = NSString(string: tip)
+            let font = UIFont.systemFontOfSize(12)
+            let usedSize = string.boundingRectWithSize(CGSizeMake(picker.bounds.width, CGFloat.max), options: NSStringDrawingOptions.UsesLineFragmentOrigin, attributes: [NSFontAttributeName : font], context: nil)
+            
+            let label = UILabel(frame: CGRectMake(0, 0, ceil(usedSize.width), ceil(usedSize.height)))
+            label.textAlignment = NSTextAlignment.Left
+            label.lineBreakMode = NSLineBreakMode.ByTruncatingTail
+            label.numberOfLines = 0
+            label.backgroundColor = UIColor.clearColor()
+            label.font = font
+            label.textColor = AXDefaultTintColor.colorWithAlphaComponent(0.5)
+            label.text = tip
+            
+            picker.customView = label
+        }
+        
+        picker.show(animated: animated, completion: completion, revoking: revoking, executing: executing)
+    }
+    
+    class func showInView(view: UIView, animated: Bool, style:AXPickerViewStyle = .Normal, items:[String]? = nil, title: String? = nil, customView: UIView? = nil, configuration: AXConfiguration? = nil, completion: AXCompletion? = nil, revoking: AXRevoking? = nil, executing: AXExecuting? = nil) -> () {
+        let picker = AXPickerView(style: style, items: items)
+        
+        if let config = configuration {
+            config(pickerView: picker)
+        }
+        
+        picker.view = view
+        picker.title = title
+        picker.customView = customView
+        
+        picker.show(animated: animated, completion: completion, revoking: revoking, executing: executing)
+    }
+}
+
+@available(iOS 7.0, *)
+extension AXPickerView: UICollectionViewDelegateFlowLayout, UICollectionViewDelegate, UICollectionViewDataSource, UIImagePickerControllerDelegate, UINavigationControllerDelegate, AXImagePickerControllerDelegate {
     
     class func showImagePickerInWindow(window: UIWindow, animated: Bool, configuration: AXConfiguration? = nil) -> Void {
         self.showImagePickerInView(window, animated: animated, configuration: configuration)
     }
     
     class func showImagePickerInView(view: UIView, animated: Bool, configuration: AXConfiguration? = nil) -> Void {
-        let picker = AXPickerView(style: .Normal, items: ["拍摄", "从相册选取"])
-        picker.seperatorInsets = UIEdgeInsetsZero
-        picker.view = view
-        configuration?(pickerView: picker)
-        let collectionView = UICollectionView(frame: CGRectMake(0, 0, 0, rightHeight), collectionViewLayout: {
-            () -> UICollectionViewFlowLayout in
-            let layout = UICollectionViewFlowLayout()
-            layout.scrollDirection = UICollectionViewScrollDirection.Horizontal
-            return layout
-            }())
-        collectionView.allowsMultipleSelection = true
-        collectionView.showsHorizontalScrollIndicator = false
-        collectionView.backgroundColor = UIColor.clearColor()
-        collectionView.registerClass(AXImagePickerCell.self, forCellWithReuseIdentifier: reusedIdentifier)
-        collectionView.delegate = picker
-        collectionView.dataSource = picker
-        picker.customView = collectionView
-        picker.validPhotoGroup?()
-        picker.show(animated: true, completion: nil, revoking: nil, executing: imagePickerExecuting)
+        AXImagePickerController.requestAuthorization(completion: { () -> Void in
+                let picker = AXPickerView(style: .Normal, items: ["拍摄", "从相册选取"])
+                picker.seperatorInsets = UIEdgeInsetsZero
+                picker.view = view
+                configuration?(pickerView: picker)
+                let collectionView = UICollectionView(frame: CGRectMake(0, 0, 0, rightHeight), collectionViewLayout: {
+                    () -> UICollectionViewFlowLayout in
+                    let layout = UICollectionViewFlowLayout()
+                    layout.scrollDirection = UICollectionViewScrollDirection.Horizontal
+                    return layout
+                    }())
+                collectionView.allowsMultipleSelection = true
+                collectionView.showsHorizontalScrollIndicator = false
+                collectionView.backgroundColor = UIColor.clearColor()
+                collectionView.registerClass(AXImagePickerCell.self, forCellWithReuseIdentifier: reusedIdentifier)
+                collectionView.delegate = picker
+                collectionView.dataSource = picker
+                picker.customView = collectionView
+                picker.validPhotoGroup?()
+                picker.show(animated: true, completion: nil, revoking: nil, executing: imagePickerExecuting)
+                if #available(iOS 8.0, *) {
+                    PHPhotoLibrary.sharedPhotoLibrary().registerChangeObserver(picker)
+                } else {
+                    NSNotificationCenter.defaultCenter().addObserver(picker, selector: "handleALLibraryChangedNotification:", name: ALAssetsLibraryChangedNotification, object: nil)
+                }
+            }) { () -> Void in
+                if let window = __window() {
+                    AXPracticalHUD.sharedHUD.showError(inView: window, text: "访问相册失败", detail: "请前往 设置->隐私->照片 允许应用访问相册", configuration: { (HUD) -> Void in
+                        HUD.translucent = true
+                        HUD.lockBackground = true
+                        HUD.dimBackground = true
+                        HUD.position  = .Center
+                        HUD.animation = .Fade
+                        HUD.restoreEnabled = true
+                        HUD.hide(animated: true, afterDelay: 4.0)
+                    })
+                }
+            }
     }
     
     private func rightSize(originalSize size: CGSize, rightHeight: CGFloat) -> CGSize {
@@ -1129,7 +1142,7 @@ extension AXPickerView: UICollectionViewDelegateFlowLayout, UICollectionViewDele
     }
     
     // MARK: - UICollectionViewDelegateFlowLayout
-    func collectionView(collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAtIndexPath indexPath: NSIndexPath) -> CGSize {
+    public func collectionView(collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAtIndexPath indexPath: NSIndexPath) -> CGSize {
         if #available(iOS 8.0, *) {
             let assets = _photoAssetsResult?.objectAtIndex(indexPath.row) as! PHAsset
             let size = CGSizeMake(CGFloat(assets.pixelWidth), CGFloat(assets.pixelHeight))
@@ -1141,20 +1154,20 @@ extension AXPickerView: UICollectionViewDelegateFlowLayout, UICollectionViewDele
         }
     }
     
-    func collectionView(collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, insetForSectionAtIndex section: Int) -> UIEdgeInsets {
+    public func collectionView(collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, insetForSectionAtIndex section: Int) -> UIEdgeInsets {
         return UIEdgeInsetsMake(0, 0, 0, 0)
     }
 
-    func collectionView(collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumLineSpacingForSectionAtIndex section: Int) -> CGFloat {
+    public func collectionView(collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumLineSpacingForSectionAtIndex section: Int) -> CGFloat {
         return 5.0
     }
     
-    func collectionView(collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumInteritemSpacingForSectionAtIndex section: Int) -> CGFloat {
+    public func collectionView(collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumInteritemSpacingForSectionAtIndex section: Int) -> CGFloat {
         return 5.0
     }
     
     // MARK: - UICollectionViewDataSource
-    func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+    public func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         if #available(iOS 8.0, *) {
             return _photoAssetsResult?.count ?? 0
         } else {
@@ -1162,7 +1175,7 @@ extension AXPickerView: UICollectionViewDelegateFlowLayout, UICollectionViewDele
         }
     }
     
-    func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell {
+    public func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCellWithReuseIdentifier(reusedIdentifier, forIndexPath: indexPath) as! AXImagePickerCell
         if #available(iOS 8.0, *) {
             let assets = _photoAssetsResult?.objectAtIndex(indexPath.row) as! PHAsset
@@ -1178,7 +1191,7 @@ extension AXPickerView: UICollectionViewDelegateFlowLayout, UICollectionViewDele
     
     // MARK: - UICollectionViewDelegate
     
-    func collectionView(collectionView: UICollectionView, shouldSelectItemAtIndexPath indexPath: NSIndexPath) -> Bool {
+    public func collectionView(collectionView: UICollectionView, shouldSelectItemAtIndexPath indexPath: NSIndexPath) -> Bool {
         if let count = collectionView.indexPathsForSelectedItems()?.count {
             if count >= 9 {
                 return false
@@ -1187,7 +1200,7 @@ extension AXPickerView: UICollectionViewDelegateFlowLayout, UICollectionViewDele
         return true
     }
     
-    func collectionView(collectionView: UICollectionView, didSelectItemAtIndexPath indexPath: NSIndexPath) {
+    public func collectionView(collectionView: UICollectionView, didSelectItemAtIndexPath indexPath: NSIndexPath) {
         if let count = collectionView.indexPathsForSelectedItems()?.count {
             if count > 0 {
                 self.items = ["拍摄", "从相册选取", "已选择\(count)张"]
@@ -1199,7 +1212,7 @@ extension AXPickerView: UICollectionViewDelegateFlowLayout, UICollectionViewDele
         self.itemConfigs?.removeAll()
     }
     
-    func collectionView(collectionView: UICollectionView, didDeselectItemAtIndexPath indexPath: NSIndexPath) {
+    public func collectionView(collectionView: UICollectionView, didDeselectItemAtIndexPath indexPath: NSIndexPath) {
         if let count = collectionView.indexPathsForSelectedItems()?.count {
             if count > 0 {
                 self.items = ["拍摄", "从相册选取", "已选择\(count)张"]
@@ -1213,30 +1226,136 @@ extension AXPickerView: UICollectionViewDelegateFlowLayout, UICollectionViewDele
     
     // MARK: - UIImagePickerControllerDelegate
     
-    func imagePickerController(picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [String : AnyObject]) {
+    public func imagePickerController(picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [String : AnyObject]) {
         
     }
     
-    func imagePickerControllerDidCancel(picker: UIImagePickerController) {
+    public func imagePickerControllerDidCancel(picker: UIImagePickerController) {
+        self._revoking?(pickerView: self)
+    }
+    
+    // MARK: - AXImagePickerControllerDelegate
+    
+    public func imagePickerController(picker: AXImagePickerController, selectedImages images: [UIImage]) -> Void {
         
+    }
+    
+    public func imagePickerControllerCanceled(picker: AXImagePickerController) -> Void {
+        self._revoking?(pickerView: self)
     }
     
     // MARK: - UINavigationControllerDelegate
     
-    func navigationController(navigationController: UINavigationController, willShowViewController viewController: UIViewController, animated: Bool) {
+    public func navigationController(navigationController: UINavigationController, willShowViewController viewController: UIViewController, animated: Bool) {
         viewController.navigationController?.navigationBar.tintColor = AXDefaultSelectedColor
     }
     
-    func navigationController(navigationController: UINavigationController, didShowViewController viewController: UIViewController, animated: Bool) {
+    public func navigationController(navigationController: UINavigationController, didShowViewController viewController: UIViewController, animated: Bool) {
         
     }
     
-    func navigationControllerSupportedInterfaceOrientations(navigationController: UINavigationController) -> UIInterfaceOrientationMask {
+    public func navigationControllerSupportedInterfaceOrientations(navigationController: UINavigationController) -> UIInterfaceOrientationMask {
         return UIInterfaceOrientationMask.All
     }
     
-    func navigationControllerPreferredInterfaceOrientationForPresentation(navigationController: UINavigationController) -> UIInterfaceOrientation
+    public func navigationControllerPreferredInterfaceOrientationForPresentation(navigationController: UINavigationController) -> UIInterfaceOrientation
     {
         return UIInterfaceOrientation.Portrait
+    }
+}
+@available(iOS 8.0, *)
+extension AXPickerView: PHPhotoLibraryChangeObserver {
+    public func photoLibraryDidChange(changeInstance: PHChange) -> Void {
+        if let asset = self.assets as? PHFetchResult {
+            if let change = changeInstance.changeDetailsForFetchResult(asset) {
+                if change.hasIncrementalChanges {
+                    self.assets = change.fetchResultAfterChanges
+                    if let collectionView = customView as? UICollectionView {
+                        collectionView.reloadData()
+                        if collectionView.numberOfSections() > 0 && collectionView.numberOfItemsInSection(0) > 0 {
+                            collectionView.scrollToItemAtIndexPath(NSIndexPath(forItem: 0, inSection: 0), atScrollPosition: UICollectionViewScrollPosition.Top, animated: true)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+@available(iOS, introduced=7.0, deprecated=8.0)
+extension AXPickerView {
+    @objc private func handleALLibraryChangedNotification(aNotification: NSNotification) -> Void {
+        self.validPhotoGroup?()
+    }
+}
+//MARK: - Private Classes
+private class AXImagePickerCell: UICollectionViewCell {
+    let label = {
+        () -> UILabel in
+        let lab = UILabel(frame: CGRectZero)
+        lab.backgroundColor = UIColor.clearColor()
+        lab.font = UIFont.systemFontOfSize(12)
+        lab.textColor = AXDefaultSelectedColor
+        lab.text = "已选择"
+        lab.sizeToFit()
+        lab.autoresizingMask = UIViewAutoresizing.FlexibleBottomMargin.union(UIViewAutoresizing.FlexibleLeftMargin).union(UIViewAutoresizing.FlexibleRightMargin).union(UIViewAutoresizing.FlexibleTopMargin)
+        lab.hidden = true
+        return lab
+        }()
+    
+    lazy var imageView: UIImageView! = {
+        return get() {
+            [unowned self]() -> AnyObject in
+            let imgView = UIImageView(frame: CGRectZero)
+            imgView.backgroundColor = UIColor.clearColor()
+            imgView.autoresizingMask = UIViewAutoresizing.FlexibleHeight.union(.FlexibleWidth).union(.FlexibleBottomMargin).union(.FlexibleRightMargin)
+            imgView.contentMode = UIViewContentMode.ScaleAspectFill
+            imgView.clipsToBounds = true
+            return imgView
+            } as! UIImageView
+        }()
+    
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        initializer()
+    }
+    
+    required init?(coder aDecoder: NSCoder) {
+        super.init(coder: aDecoder)
+        initializer()
+    }
+    
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        imageView?.image = nil
+    }
+    
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        imageView.frame = self.contentView.bounds
+        var rect = label.frame
+        rect.origin.x = (imageView.bounds.width - rect.width) / 2
+        rect.origin.y = (imageView.bounds.height - rect.height) / 2
+        label.frame = rect
+    }
+    
+    override var selected: Bool {
+        get {
+            return super.selected
+        }
+        set {
+            super.selected = newValue
+            
+            label.hidden = !selected
+            if selected {
+                imageView.alpha = 0.1
+            } else {
+                imageView.alpha = 1.0
+            }
+        }
+    }
+    
+    private func initializer() -> Void {
+        addSubview(imageView)
+        addSubview(label)
     }
 }

@@ -21,6 +21,7 @@
 		0138426A1B88C8910005AFED /* LaunchScreen.strings in Resources */ = {isa = PBXBuildFile; fileRef = 013842591B88C8910005AFED /* LaunchScreen.strings */; };
 		0138426B1B88C8910005AFED /* Main.strings in Resources */ = {isa = PBXBuildFile; fileRef = 0138425B1B88C8910005AFED /* Main.strings */; };
 		0138426D1B88CA870005AFED /* timo.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 0138426C1B88CA870005AFED /* timo.jpg */; };
+		013E3CB71B8B4B7800BDA3FD /* AXPracticalHUD.bundle in Resources */ = {isa = PBXBuildFile; fileRef = 013E3CB61B8B4B7800BDA3FD /* AXPracticalHUD.bundle */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -38,6 +39,7 @@
 		0138425A1B88C8910005AFED /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/LaunchScreen.strings"; sourceTree = "<group>"; };
 		0138425C1B88C8910005AFED /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Main.strings"; sourceTree = "<group>"; };
 		0138426C1B88CA870005AFED /* timo.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = timo.jpg; sourceTree = "<group>"; };
+		013E3CB61B8B4B7800BDA3FD /* AXPracticalHUD.bundle */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.plug-in"; path = AXPracticalHUD.bundle; sourceTree = "<group>"; };
 		01CBCA661B5AAE370066B2B6 /* AXSwift.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AXSwift.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -62,6 +64,7 @@
 				0138424E1B88C8910005AFED /* AXImagePickerController.swift */,
 				0138424F1B88C8910005AFED /* AXPickerView.swift */,
 				013842501B88C8910005AFED /* AXPracticalHUD.swift */,
+				013E3CB61B8B4B7800BDA3FD /* AXPracticalHUD.bundle */,
 				0138424B1B88C8910005AFED /* Assets.xcassets */,
 				0138426C1B88CA870005AFED /* timo.jpg */,
 				013842511B88C8910005AFED /* LaunchScreen.storyboard */,
@@ -149,6 +152,7 @@
 			files = (
 				013842661B88C8910005AFED /* Info.plist in Resources */,
 				0138426B1B88C8910005AFED /* Main.strings in Resources */,
+				013E3CB71B8B4B7800BDA3FD /* AXPracticalHUD.bundle in Resources */,
 				013842651B88C8910005AFED /* Main.storyboard in Resources */,
 				0138426D1B88CA870005AFED /* timo.jpg in Resources */,
 				0138425E1B88C8910005AFED /* Assets.xcassets in Resources */,
