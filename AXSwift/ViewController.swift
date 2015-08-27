@@ -140,7 +140,7 @@ class ViewController: UIViewController {
 //        }
         
         if sender.tag == 1 {
-            AXPickerView.showImagePickerInView(view.window!, animated: true)
+            AXPickerView.showImagePickerInView(view, animated: true, allowsMultipleSelection: true)
         } else if sender.tag == 2 {
 //            AXPracticalHUD.sharedHUD.showText(inView: self.view, text: "Bonjour", detail: "Give you a message") { (HUD) -> Void in
 //                HUD.translucent = true
