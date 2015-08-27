@@ -270,6 +270,9 @@ public class AXImagePickerController: UINavigationController {
             navigationController?.toolbar.barTintColor = nil
             navigationController?.toolbar.setSeperatorHidden(false)
             navigationController?.navigationBar.setSeperatorHidden(false)
+            
+            UIApplication.sharedApplication().statusBarStyle = .Default
+            
             updateSelectionInfo()
             // FIXME:
             /*
@@ -312,13 +315,18 @@ public class AXImagePickerController: UINavigationController {
         
         func updateSelectionInfo() -> Void {
             if let picker = navigationController as? AXImagePickerController {
-                let albumSelections = picker._selectedImageInfo.values.array
+                let albumSelections = picker._selectedImageInfo.values
                 var countOfSelectedPhoto: Int = 0
                 for (_, selection) in albumSelections.enumerate() {
                     countOfSelectedPhoto += selection.count
                 }
-                countLabel.text = "\(countOfSelectedPhoto)/9"
-                countLabel.sizeToFit()
+                if picker.allowsMultipleSelection {
+                    countLabel.text = "\(countOfSelectedPhoto)/9"
+                    countLabel.sizeToFit()
+                } else {
+                    countLabel.text = nil
+                    countLabel.sizeToFit()
+                }
             }
         }
         
@@ -326,21 +334,14 @@ public class AXImagePickerController: UINavigationController {
             if let picker = navigationController as? AXImagePickerController {
                 if let selectedImage = picker._selectedImages {
                     if picker.previewEnabled == true {
+                        let HUD = AXPracticalHUD.showHUDInView(view, animated: true)
+                        HUD.translucent = true
                         let previewController = _AXPreviewController.defaultController()
                         previewController.title = "预览"
                         previewController.assets = picker._selectedAssets
-                        picker.pushViewController(previewController, animated: true)
-//                        previewController.imageViewControllers = get({ () -> AnyObject? in
-//                            var viewControllers: [_AXPreviewController._AXImageController] = []
-//                            for (_, image) in selectedImage.enumerate() {
-//                                viewControllers.append(get({ () -> AnyObject? in
-//                                    let imageViewController = _AXPreviewController._AXImageController()
-//                                    imageViewController.imageView.image = image
-//                                    return imageViewController
-//                                }) as! _AXPreviewController._AXImageController)
-//                            }
-//                            return viewControllers
-//                        }) as! [_AXPreviewController._AXImageController]
+                        HUD.hide(animated: true, afterDelay: 1.0, completion: { () -> Void in
+                            picker.pushViewController(previewController, animated: true)
+                        })
                     } else {
                         picker.axDelegate?.imagePickerController?(picker, previewWithImages: selectedImage)
                     }
@@ -350,9 +351,14 @@ public class AXImagePickerController: UINavigationController {
         
         @objc func send(sender: UIBarButtonItem) -> Void {
             if let picker = navigationController as? AXImagePickerController {
+                let HUD = AXPracticalHUD.showHUDInView(view, animated: true)
+                HUD.translucent = true
                 if let selectedImage = picker._selectedImages {
                     picker.axDelegate?.imagePickerController?(picker, selectedImages: selectedImage)
                 }
+                HUD.hide(animated: true, afterDelay: 1.0, completion: { () -> Void in
+                    self.dismissViewControllerAnimated(true, completion: nil)
+                })
             }
         }
     }
@@ -376,9 +382,11 @@ public class AXImagePickerController: UINavigationController {
             let smartAlbumResult = PHAssetCollection.fetchAssetCollectionsWithType(.SmartAlbum, subtype: .Any, options: options)
             smartAlbumResult.enumerateObjectsUsingBlock({ (object, index, stop) -> Void in
                 if let aAlbum = object as? PHAssetCollection {
-                    let photoResult = PHAsset.fetchAssetsInAssetCollection(aAlbum, options: nil)
-                    if photoResult.count > 0 {
-                        resultList.append(aAlbum)
+                    if aAlbum.assetCollectionSubtype != .SmartAlbumAllHidden {
+                        let photoResult = PHAsset.fetchAssetsInAssetCollection(aAlbum, options: nil)
+                        if photoResult.count > 0 {
+                            resultList.append(aAlbum)
+                        }
                     }
                 }
             })
@@ -416,7 +424,6 @@ public class AXImagePickerController: UINavigationController {
                 if #available(iOS 8.0, *) {
                     return albumList.first
                 } else {
-                    loadGroups()
                     return albumGroups?.first
                 }
             }
@@ -440,7 +447,7 @@ public class AXImagePickerController: UINavigationController {
                 loadGroups()
             }
         }
-        private func loadGroups() {
+        func loadGroups(completion: (() -> Void)? = nil) {
             var groups = [ALAssetsGroup]()
             execute({ [unowned self]() -> () in
                 self.albumLibrary.enumerateGroupsWithTypes(ALAssetsGroupAll, usingBlock: {
@@ -455,12 +462,14 @@ public class AXImagePickerController: UINavigationController {
                             return false
                         }
                     })
+                    
                     }, failureBlock: {
                         (error: NSError!) -> Void in
                         #if DEBUG
                             print(error)
                         #endif
-                })
+                    })
+                completion?()
             })
         }
         override private func viewDidAppear(animated: Bool) {
@@ -549,13 +558,17 @@ public class AXImagePickerController: UINavigationController {
             return CGSizeMake((self.view.bounds.width - padding * 4) / 3, (self.view.bounds.width - padding * 2) / 3)
         }
         
-        lazy var photoView: UICollectionView! = get { [unowned self]() -> AnyObject? in
+        lazy var photoView: UICollectionView = get { [unowned self]() -> AnyObject? in
             let collectionView: UICollectionView = UICollectionView(frame: self.view.bounds, collectionViewLayout: UICollectionViewFlowLayout())
             collectionView.backgroundColor = UIColor.clearColor()
             collectionView.delegate = self
             collectionView.dataSource = self
             collectionView.registerClass(_AXPhotoCollectionViewCell.self, forCellWithReuseIdentifier: self.reuseIdentifier)
-            collectionView.allowsMultipleSelection = true
+            if let imagePickerController = self.navigationController as? AXImagePickerController {
+                collectionView.allowsMultipleSelection = imagePickerController.allowsMultipleSelection
+            } else {
+                collectionView.allowsMultipleSelection = true
+            }
             collectionView.showsHorizontalScrollIndicator = false
             return collectionView
         } as! UICollectionView
@@ -585,7 +598,8 @@ public class AXImagePickerController: UINavigationController {
             if #available(iOS 8.0, *) {
                 if let collection = photoCollection as? PHAssetCollection {
                     let fetchOptions = PHFetchOptions()
-                    fetchOptions.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: true)]
+                    fetchOptions.includeHiddenAssets = false
+                    fetchOptions.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
                     let result = PHAsset.fetchAssetsInAssetCollection(collection, options: fetchOptions)
                     photos = result
                     photoView.reloadData()
@@ -594,7 +608,7 @@ public class AXImagePickerController: UINavigationController {
                 if let aGroup = assetsGroup {
                     aGroup.enumerateAssetsUsingBlock({ [unowned self](asset: ALAsset!, index, stop) -> Void in
                         if asset != nil {
-                            self.assets.append(asset)
+                            self.assets.insert(asset, atIndex: 0)
                         }
                         if index == aGroup.numberOfAssets() - 1 {
                             self.photoView.reloadData()
@@ -677,7 +691,7 @@ public class AXImagePickerController: UINavigationController {
         // MARK: - UICollectionViewDelegate
         @objc func collectionView(collectionView: UICollectionView, shouldSelectItemAtIndexPath indexPath: NSIndexPath) -> Bool {
             if let picker = navigationController as? AXImagePickerController {
-                let albumSelections = picker._selectedImageInfo.values.array
+                let albumSelections = picker._selectedImageInfo.values
                 var countOfSelectedPhoto: Int = 0
                 for (_, selection) in albumSelections.enumerate() {
                     countOfSelectedPhoto += selection.count
@@ -690,35 +704,58 @@ public class AXImagePickerController: UINavigationController {
         }
         
         @objc func collectionView(collectionView: UICollectionView, didSelectItemAtIndexPath indexPath: NSIndexPath) {
-            markSelectedItem()
+            markSelectedItem(collectionView)
             updateSelectionInfo()
         }
         
         @objc func collectionView(collectionView: UICollectionView, didDeselectItemAtIndexPath indexPath: NSIndexPath) {
-            markSelectedItem()
-            updateSelectionInfo()
+            if let picker = navigationController as? AXImagePickerController {
+                if picker.allowsMultipleSelection {
+                    markSelectedItem(collectionView)
+                    updateSelectionInfo()
+                }
+            }
         }
         
         // MARK: - Private Methods
-        private func markSelectedItem() -> Void {
+        private func markSelectedItem(collectionView: UICollectionView) -> Void {
             if let picker = navigationController as? AXImagePickerController {
-                if self.photoView.indexPathsForSelectedItems()?.count > 0 {
-                    if let localizedTitle = title {
-                        var selectedItem = [AnyObject]()
-                        for (_, indexPath) in self.photoView.indexPathsForSelectedItems()!.enumerate() {
-                            if #available(iOS 8.0, *) {
-                                if let object = (photos as? PHFetchResult)?.objectAtIndex(indexPath.row) {
-                                    selectedItem += [object]
+                if let selectedIndexPaths = collectionView.indexPathsForSelectedItems() {
+                    if selectedIndexPaths.count > 0 {
+                        if let localizedTitle = title {
+                            var selectedItem = [AnyObject]()
+                            for (_, indexPath) in selectedIndexPaths.enumerate() {
+                                if #available(iOS 8.0, *) {
+                                    if let object = (photos as? PHFetchResult)?.objectAtIndex(indexPath.row) {
+                                        if picker.allowsMultipleSelection {
+                                            selectedItem += [object]
+                                        } else {
+                                            selectedItem = [object]
+                                        }
+                                    }
+                                } else {
+                                    if picker.allowsMultipleSelection {
+                                        selectedItem += [assets[indexPath.row]]
+                                    } else {
+                                        selectedItem = [assets[indexPath.row]]
+                                    }
                                 }
+                            }
+                            if picker.allowsMultipleSelection {
+                                picker._selectedImageInfo[localizedTitle] = selectedItem
                             } else {
-                                selectedItem += [assets[indexPath.row]]
+                                picker._selectedImageInfo[localizedTitle] = selectedItem
+                                for (_, title) in picker._selectedImageInfo.keys.enumerate() {
+                                    if title != localizedTitle {
+                                        picker._selectedImageInfo[title] = nil
+                                    }
+                                }
                             }
                         }
-                        picker._selectedImageInfo[localizedTitle] = selectedItem
-                    }
-                } else {
-                    if let localizedTitle = title {
-                        picker._selectedImageInfo[localizedTitle] = nil
+                    } else {
+                        if let localizedTitle = title {
+                            picker._selectedImageInfo[localizedTitle] = nil
+                        }
                     }
                 }
             }
@@ -825,6 +862,9 @@ public class AXImagePickerController: UINavigationController {
                 self.navigationItem.titleView = titleLabel
             }
         }
+        
+        private var _sendItem: UIBarButtonItem!
+        
         // MARK : - Life Cycle
         class func defaultController() -> _AXPreviewController {
             let pageVc = _AXPreviewController.PageViewController
@@ -846,7 +886,8 @@ public class AXImagePickerController: UINavigationController {
                 view.addSubview(pageViewController.view)
             }
             navigationItem.rightBarButtonItem = UIBarButtonItem(title: "删除", style: UIBarButtonItemStyle.Plain, target: self, action: "deleteItem:")
-            setToolbarItems([UIBarButtonItem(barButtonSystemItem: .FlexibleSpace, target: nil, action: nil), UIBarButtonItem(title: "发送(\(assets.count))", style: UIBarButtonItemStyle.Plain, target: self, action: "send:")], animated: true)
+            _sendItem = UIBarButtonItem(title: "发送(\(assets.count))", style: UIBarButtonItemStyle.Plain, target: self, action: "send:")
+            setToolbarItems([UIBarButtonItem(barButtonSystemItem: .FlexibleSpace, target: nil, action: nil), _sendItem], animated: true)
         }
         override private func viewWillAppear(animated: Bool) {
             super.viewWillAppear(animated)
@@ -890,14 +931,20 @@ public class AXImagePickerController: UINavigationController {
                 if let picker = navigationController as? AXImagePickerController {
                     picker.deleteAsset(currentImageViewController?.asset)
                     self.assets.removeAtIndex(index)
+                    _sendItem.title = "发送(\(self.assets.count))"
                 }
             }
         }
         @objc private func send(sender: UIBarButtonItem) -> Void {
             if let picker = navigationController as? AXImagePickerController {
+                let HUD = AXPracticalHUD.showHUDInView(view, animated: true)
+                HUD.translucent = true
                 if let selectedImages = picker._selectedImages {
                     picker.axDelegate?.imagePickerController?(picker, selectedImages: selectedImages)
                 }
+                HUD.hide(animated: true, afterDelay: 1.0, completion: { () -> Void in
+                    self.dismissViewControllerAnimated(true, completion: nil)
+                })
             }
         }
         // MARK : - UIPageViewControllerDelegate
@@ -947,6 +994,13 @@ public class AXImagePickerController: UINavigationController {
         }
     }
     var previewEnabled: Bool!
+    var allowsMultipleSelection: Bool = true {
+        didSet {
+            if let photosViewController = self._photosViewController {
+                photosViewController.photoView.allowsMultipleSelection = self.allowsMultipleSelection
+            }
+        }
+    }
     // MARK: - Private & Lazy Load properties
     private lazy var _albumsViewController: _AXAlbumViewController = {
         () -> _AXAlbumViewController in
@@ -954,8 +1008,8 @@ public class AXImagePickerController: UINavigationController {
         return viewController
         }()
     private lazy var _photosViewController: _AXPhotoViewController? = {
-        [unowned self]() -> _AXPhotoViewController in
-        var viewController: _AXPhotoViewController!
+        [unowned self]() -> _AXPhotoViewController? in
+        var viewController: _AXPhotoViewController?
         if #available(iOS 8.0, *) {
             if let collection = self._albumsViewController.topAlbumInfo as? PHAssetCollection {
                 viewController = _AXPhotoViewController(photoCollection: collection)
@@ -976,7 +1030,7 @@ public class AXImagePickerController: UINavigationController {
     
     private var _selectedAssets: [AnyObject]? {
         return get({ () -> AnyObject? in
-            let albumSelections = self._selectedImageInfo.values.array
+            let albumSelections = self._selectedImageInfo.values
             var selectedAssets: [AnyObject] = []
             for (_, selection) in albumSelections.enumerate() {
                 for assets in selection {
@@ -1024,8 +1078,6 @@ public class AXImagePickerController: UINavigationController {
     private var _selectedImages: [UIImage]? {
         return get({ [unowned self]() -> AnyObject? in
             var images: [UIImage] = []
-            let HUD = AXPracticalHUD.showHUDInView(self.view, animated: true)
-            HUD.translucent = true
             if #available(iOS 8.0, *) {
                 for (_, asset) in (self._selectedAssets as! [PHAsset]).enumerate() {
                     PHImageManager.defaultManager().requestImageForAsset(asset, targetSize: CGSizeMake(CGFloat(asset.pixelWidth), CGFloat(asset.pixelHeight)), contentMode: PHImageContentMode.AspectFill, options: get({ () -> AnyObject? in
@@ -1043,7 +1095,6 @@ public class AXImagePickerController: UINavigationController {
                     images.append(UIImage(CGImage: asset.defaultRepresentation().fullResolutionImage().takeUnretainedValue()))
                 }
             }
-            HUD.hide(animated: true)
             if images.count <= 0 {
                 return nil
             }
@@ -1070,11 +1121,31 @@ public class AXImagePickerController: UINavigationController {
     
     convenience init() {
         self.init(nibName: nil, bundle: nil)
-        if _photosViewController != nil {
-            pushViewController(_albumsViewController, animated: false)
-            pushViewController(_photosViewController!, animated: false)
+        if #available(iOS 8.0, *) {
+            if let photosViewController = _photosViewController {
+                pushViewController(_albumsViewController, animated: false)
+                pushViewController(photosViewController, animated: false)
+            } else {
+                pushViewController(_albumsViewController, animated: false)
+            }
         } else {
-            pushViewController(_albumsViewController, animated: false)
+            if let photosViewController = _photosViewController {
+                pushViewController(_albumsViewController, animated: false)
+                pushViewController(photosViewController, animated: false)
+            } else {
+                _albumsViewController.loadGroups({ () -> Void in
+                    if let group = self._albumsViewController.topAlbumInfo as? ALAssetsGroup {
+                        self._photosViewController = _AXPhotoViewController(assetsGroup: group)
+                        self._photosViewController?.title = group.valueForProperty(ALAssetsGroupPropertyName) as? String
+                    }
+                    if let photosViewController = self._photosViewController {
+                        self.pushViewController(self._albumsViewController, animated: false)
+                        self.pushViewController(photosViewController, animated: false)
+                    } else {
+                        self.pushViewController(self._albumsViewController, animated: false)
+                    }
+                })
+            }
         }
         addObserver(self, forKeyPath: "_selectedImageInfo", options: .New, context: nil)
         

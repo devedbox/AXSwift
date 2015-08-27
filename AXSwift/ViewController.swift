@@ -23,7 +23,7 @@ class ViewController: UIViewController {
         
         view.backgroundColor = UIColor.orangeColor()
         
-        let imageView = UIImageView(image: UIImage(imageLiteral: "timo.jpg"))
+        let imageView = UIImageView(image: UIImage(named: "timo.jpg"))
         imageView.frame = view.bounds
         imageView.contentMode = UIViewContentMode.ScaleAspectFill
         imageView.autoresizingMask = UIViewAutoresizing.FlexibleWidth.union(.FlexibleHeight)
@@ -73,6 +73,11 @@ class ViewController: UIViewController {
         
         pickerView.view = view!
         pickerView.delegate = self
+        
+//        let items = ["nn", "mm"]
+//        for (index, indexPath) in items.enumerate() {
+//            
+//        }
         
 //        AXPracticalHUD.showHUDInView(view, animated: true)
 //        AXPracticalHUD.sharedHUD.showPie(inView: view, text: "你好", detail: "这是一条测试消息")
@@ -175,7 +180,7 @@ class ViewController: UIViewController {
 
 extension ViewController: AXPickerViewDelegate {
     func pickerViewDidShow(pickerView: AXPickerView) {
-        let customView = UIImageView(image: UIImage(imageLiteral: "timo2.jpg"))
+        let customView = UIImageView(image: UIImage(named: "timo.jpg"))
         customView.frame = CGRectMake(0, 0, self.view.bounds.width, 120)
         customView.contentMode = UIViewContentMode.ScaleAspectFill
         customView.clipsToBounds = true

@@ -839,7 +839,7 @@ public class AXPracticalHUD: UIView {
         }
     }
     
-    func hide(animated animated: Bool, afterDelay delay:NSTimeInterval? = nil, completion:AXPracticalHUDCompletionBlock? = nil) -> Void {
+    public func hide(animated animated: Bool, afterDelay delay:NSTimeInterval = 0.0, completion:AXPracticalHUDCompletionBlock? = nil) -> Void {
         func hideAnimated(animated: Bool) -> Void {
             self.animated = animated;
             // If the minShow time is set, calculate how long the hud was shown,
@@ -861,18 +861,12 @@ public class AXPracticalHUD: UIView {
             }
         }
         self.completion = completion
-        if let aDelay = delay {
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, Int64(aDelay * Double(NSEC_PER_SEC))), dispatch_get_main_queue(), { () -> Void in
-                hideAnimated(animated)
-            })
-        } else {
-            executeOnMainThread({ () -> Void in
-                hideAnimated(animated)
-            })
-        }
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, Int64(delay * Double(NSEC_PER_SEC))), dispatch_get_main_queue(), { () -> Void in
+            hideAnimated(animated)
+        })
     }
     
-    func show(animated animated: Bool, executingMethod method: Selector, toTarget target: NSObject, withObject object: AnyObject) -> Void {
+    public func show(animated animated: Bool, executingMethod method: Selector, toTarget target: NSObject, withObject object: AnyObject) -> Void {
         executedMethod = method
         executedTarget = target
         executedObject = object
