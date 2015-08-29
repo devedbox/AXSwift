@@ -255,7 +255,7 @@ public class AXImagePickerController: UINavigationController {
             navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .Cancel, target: self, action: "cancel:")
             self.setToolbarItems((get({ [unowned self]() -> AnyObject? in
                 let leftItem = UIBarButtonItem(title: "预览", style: .Plain, target: self, action: "preview:")
-                let rightItem = UIBarButtonItem(title: "发送", style: .Plain, target: self, action: "send:")
+                let rightItem = UIBarButtonItem(title: "选择", style: .Plain, target: self, action: "send:")
                 return [leftItem, UIBarButtonItem(barButtonSystemItem: UIBarButtonSystemItem.FlexibleSpace, target: nil, action: nil), UIBarButtonItem(customView: self.countLabel), UIBarButtonItem(barButtonSystemItem: UIBarButtonSystemItem.FlexibleSpace, target: nil, action: nil), rightItem]
             }) as! [UIBarButtonItem]), animated: true)
         }
@@ -353,11 +353,18 @@ public class AXImagePickerController: UINavigationController {
             if let picker = navigationController as? AXImagePickerController {
                 let HUD = AXPracticalHUD.showHUDInView(view, animated: true)
                 HUD.translucent = true
-                if let selectedImage = picker._selectedImages {
-                    picker.axDelegate?.imagePickerController?(picker, selectedImages: selectedImage)
+                guard let selectedImages = picker._selectedImages else {
+                    HUD.hide(animated: true)
+                    return
+                }
+                guard let aDelegate = picker.axDelegate else {
+                    HUD.hide(animated: true)
+                    return
                 }
                 HUD.hide(animated: true, afterDelay: 1.0, completion: { () -> Void in
-                    self.dismissViewControllerAnimated(true, completion: nil)
+                    self.dismissViewControllerAnimated(true) { () -> Void in
+                        aDelegate.imagePickerController?(picker, selectedImages: selectedImages)
+                    }
                 })
             }
         }
@@ -886,7 +893,7 @@ public class AXImagePickerController: UINavigationController {
                 view.addSubview(pageViewController.view)
             }
             navigationItem.rightBarButtonItem = UIBarButtonItem(title: "删除", style: UIBarButtonItemStyle.Plain, target: self, action: "deleteItem:")
-            _sendItem = UIBarButtonItem(title: "发送(\(assets.count))", style: UIBarButtonItemStyle.Plain, target: self, action: "send:")
+            _sendItem = UIBarButtonItem(title: "选择(\(assets.count))", style: UIBarButtonItemStyle.Plain, target: self, action: "send:")
             setToolbarItems([UIBarButtonItem(barButtonSystemItem: .FlexibleSpace, target: nil, action: nil), _sendItem], animated: true)
         }
         override private func viewWillAppear(animated: Bool) {
@@ -931,7 +938,7 @@ public class AXImagePickerController: UINavigationController {
                 if let picker = navigationController as? AXImagePickerController {
                     picker.deleteAsset(currentImageViewController?.asset)
                     self.assets.removeAtIndex(index)
-                    _sendItem.title = "发送(\(self.assets.count))"
+                    _sendItem.title = "选择(\(self.assets.count))"
                 }
             }
         }
@@ -939,11 +946,18 @@ public class AXImagePickerController: UINavigationController {
             if let picker = navigationController as? AXImagePickerController {
                 let HUD = AXPracticalHUD.showHUDInView(view, animated: true)
                 HUD.translucent = true
-                if let selectedImages = picker._selectedImages {
-                    picker.axDelegate?.imagePickerController?(picker, selectedImages: selectedImages)
+                guard let selectedImages = picker._selectedImages else {
+                    HUD.hide(animated: true)
+                    return
+                }
+                guard let aDelegate = picker.axDelegate else {
+                    HUD.hide(animated: true)
+                    return
                 }
                 HUD.hide(animated: true, afterDelay: 1.0, completion: { () -> Void in
-                    self.dismissViewControllerAnimated(true, completion: nil)
+                    self.dismissViewControllerAnimated(true) { () -> Void in
+                        aDelegate.imagePickerController?(picker, selectedImages: selectedImages)
+                    }
                 })
             }
         }

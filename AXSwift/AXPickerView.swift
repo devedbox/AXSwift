@@ -23,31 +23,31 @@ public let AXPickerToolBarHeight: CGFloat = 44.0
 /// Default height of date picker and common picker
 public let AXPickerHeight: CGFloat = 216.0
 /// Type of (index, height, insets, backgroundColor) of seperators
-public typealias AXPickerViewSeperatorConfiguration = (Int, Float?, UIEdgeInsets?, UIColor?)
+public typealias AXPickerViewSeperatorConfiguration = (Int, CGFloat?, UIEdgeInsets?, UIColor?)
 /// Type of (index, tintColor, textFont) of items
 public typealias AXPickerViewItemConfiguration = (Int, UIColor?, UIFont?)
 @available(iOS 7.0, *)
 /// Completion closure
 ///
 /// :param: pickerView a instance picker view
-typealias AXCompletion = (pickerView:AXPickerView) -> ()
+public typealias AXCompletion = (pickerView:AXPickerView) -> ()
 @available(iOS 7.0, *)
 /// Revoking closure
 ///
 /// :param: pickerView a instance picker view
-typealias AXRevoking = (pickerView: AXPickerView) -> ()
+public typealias AXRevoking = (pickerView: AXPickerView) -> ()
 @available(iOS 7.0, *)
 /// Executing closure
 ///
 /// :param: selectedTitle a selected title of picker view
 /// :param: atIndex a index of selected item
 /// :param: inPickerView a instance picker view
-typealias AXExecuting = (selectedTitle: String, atIndex: Int, inPickerView: AXPickerView) -> ()
+public typealias AXExecuting = (selectedTitle: String, atIndex: Int, inPickerView: AXPickerView) -> ()
 @available(iOS 7.0, *)
 /// Configuration closure
 ///
 /// :param: pickerView a instance picker view
-typealias AXConfiguration = (pickerView: AXPickerView) -> ()
+public typealias AXConfiguration = (pickerView: AXPickerView) -> ()
 
 @available(iOS 7.0, *)
 // Style of AXPickerView
@@ -96,10 +96,47 @@ public protocol AXLayerTag {
     var tag: TagType!{get set}
 }
 // Datasource of picker view when the style of picker view eaqul to .CommonPicker
-public protocol AXPickerViewDataSource: UIPickerViewDataSource {
+@objc public protocol AXPickerViewDataSource: UIPickerViewDataSource {
     
 }
-
+/// An extension managed common picker view
+extension AXPickerView {
+    public func numberOfComponents() -> Int {
+        return _commonPicker.numberOfComponents
+    }
+    public func selectedRowInComponent(componet: Int) -> Int {
+        return _commonPicker.selectedRowInComponent(componet)
+    }
+    
+    public func reloadData () -> Void {
+        if style == .CommonPicker {
+            _commonPicker.reloadAllComponents()
+        }
+    }
+}
+/// An extension managed Objective-C
+extension AXPickerView {
+    public func configureItem(withTintColor tintColor: UIColor?, font: UIFont?, atIndex index: Int) -> Void {
+        var configs: [AXPickerViewItemConfiguration] = []
+        if let con = itemConfigs {
+            configs += con
+        }
+        let aConfig: AXPickerViewItemConfiguration = (index, tintColor, font)
+        configs += [aConfig]
+        self.itemConfigs = configs
+    }
+    
+    public func configureSeparator(withColor color: UIColor?, insets: UIEdgeInsets?, height: CGFloat, atIndex index: Int) -> Void
+    {
+        var configs: [AXPickerViewSeperatorConfiguration] = []
+        if let con = seperatorConfigs {
+            configs += con
+        }
+        let aConfig: AXPickerViewSeperatorConfiguration = (index, height, insets, color)
+        configs += [aConfig]
+        self.seperatorConfigs = configs
+    }
+}
 @available(iOS 7.0, *)
 // AXPicerView, a custom view that user can choose a style deciding the look of picker view, and a convenient way to use image picker controller.
 // If choosed a Normal style, it would be a look like a sort of buttons arranged in vertical direction
@@ -221,14 +258,14 @@ public class AXPickerView: UIView {
         }
     }
     /// The default insets of seperators
-    public var seperatorInsets: UIEdgeInsets? = UIEdgeInsets(top: 0, left: 20, bottom: 0, right: 20) {
+    public var seperatorInsets: UIEdgeInsets = UIEdgeInsets(top: 0, left: 20, bottom: 0, right: 20) {
         didSet {
             configureViews()
         }
     }
     /// A list of custom configuration of seperator
     /// Use a type of (Int, UIEdgetInsets)
-    public var seperatorConfigs: [AXPickerViewSeperatorConfiguration]? = [(0, Float(0.7), UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0), nil)] {
+    public var seperatorConfigs: [AXPickerViewSeperatorConfiguration]? = [(0, CGFloat(0.7), UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0), nil)] {
         didSet {
             configureViews()
         }
@@ -255,7 +292,17 @@ public class AXPickerView: UIView {
             }
         }
     }
-    
+    /// Get the date if style is .DatePicker
+    public var selectedDate: NSDate? {
+        return get({ () -> AnyObject? in
+            if self.style == .DatePicker {
+                let date = self._datePicker.date
+                return date
+            } else {
+                return nil
+            }
+        }) as? NSDate
+    }
     // MARK: - Private And Lazy Properties
     
     /// AllowsMultipleSelection
@@ -339,7 +386,14 @@ public class AXPickerView: UIView {
         ///Custom initialize date picker
         let picker = UIDatePicker(frame: CGRectMake(0.0, AXPickerToolBarHeight, self.bounds.size.width, AXPickerHeight))
         picker.backgroundColor = AXDefaultBackgroundColor
-        picker.datePickerMode = .DateAndTime
+        picker.timeZone = NSTimeZone(name: "GMT+8")
+        let dateFormat = NSDateFormatter()
+        dateFormat.dateFormat = "yyyy-MM-dd hh:mm:ss"
+        let minDate = dateFormat.dateFromString("1900-01-01 00:00:00")
+        picker.minimumDate = minDate
+        picker.maximumDate = NSDate()
+        picker.setDate(NSDate(), animated: true)
+        picker.datePickerMode = .Date
         picker.autoresizingMask = UIViewAutoresizing.FlexibleWidth.union(.FlexibleBottomMargin).union(.FlexibleLeftMargin).union(.FlexibleRightMargin)
         return picker
     }()
@@ -413,6 +467,8 @@ public class AXPickerView: UIView {
     private let _photoLibrary: ALAssetsLibrary = ALAssetsLibrary()
     /// The photo assets of image picker view
     private var _photoAssets: [ALAsset] = [ALAsset]()
+    /// Contain camera
+    private var _containsCamera: Bool = true
     @available(iOS, introduced=7.0, deprecated=8.0)
     /// Async get the image and reload collection view
     lazy var validPhotoGroup: (() -> Void)? = {
@@ -583,7 +639,7 @@ public class AXPickerView: UIView {
                     var rect = self._datePicker!.frame
                     rect.origin.y = AXPickerToolBarHeight
                     self._datePicker!.frame = rect
-                    self.layer.addSublayer(self.seperator(atIndex: 1, height: 0.5, color: self.seperatorColor ?? AXDefaultSeperatorColor))
+                    self.layer.addSublayer(self.seperator(atIndex: 1, height: 1, color: self.seperatorColor ?? AXDefaultSeperatorColor))
                 }
             }
             addSubview(_datePicker!)
@@ -613,7 +669,7 @@ public class AXPickerView: UIView {
                     var rect = self._commonPicker!.frame
                     rect.origin.y = AXPickerToolBarHeight
                     self._commonPicker!.frame = rect
-                    self.layer.addSublayer(self.seperator(atIndex: 1, height: 0.5, color: self.seperatorColor ?? AXDefaultSeperatorColor))
+                    self.layer.addSublayer(self.seperator(atIndex: 1, height: 1, color: self.seperatorColor ?? AXDefaultSeperatorColor))
                 }
             }
             addSubview(_commonPicker!)
@@ -746,7 +802,7 @@ public class AXPickerView: UIView {
         }
     }
     /// Hide animated
-    func hide(animated animated: Bool) -> () {
+    func hide(animated animated: Bool, completion: (() -> Void)? = nil) -> () {
         if let _ = superview {
             delegate?.pickerViewWillHide?(self)
             
@@ -776,6 +832,7 @@ public class AXPickerView: UIView {
                             } else {
                                 NSNotificationCenter.defaultCenter().removeObserver(_self)
                             }
+                            completion?()
                         }
                     }
                 })
@@ -841,7 +898,7 @@ public class AXPickerView: UIView {
     /// Get a separator layer with a height, color, insets at a index
     private func seperator(atIndex index: Int, height: CGFloat, color: UIColor, insets:UIEdgeInsets? = nil) -> CALayer_ax {
         let layer = CALayer_ax()
-        layer.frame = CGRectMake((insets ?? seperatorInsets!).left, AXPickerToolBarHeight * CGFloat(index), self.bounds.size.width - ((insets ?? seperatorInsets!).left + (insets ?? seperatorInsets!).right), height)
+        layer.frame = CGRectMake((insets ?? seperatorInsets).left, AXPickerToolBarHeight * CGFloat(index), self.bounds.size.width - ((insets ?? seperatorInsets).left + (insets ?? seperatorInsets).right), height)
         layer.backgroundColor = color.CGColor
         layer.tag = index + 1
         return layer
@@ -861,7 +918,7 @@ public class AXPickerView: UIView {
             
             for (index, button) in (buttons as! [UIButton]).enumerate(){
                 let seperatorBlock = {
-                    (config: (Int, Float?, UIEdgeInsets?, UIColor?)) -> Bool in
+                    (config: (Int, CGFloat?, UIEdgeInsets?, UIColor?)) -> Bool in
                     let (aIndex, _, _, _) = config
                     return aIndex == index - 1
                 }
@@ -893,8 +950,8 @@ public class AXPickerView: UIView {
                     if let seperatorLayer = button.layer.sublayers?.filter(seperatorLayerBlock).first {
                         seperatorLayer.backgroundColor = (seperatorColor ?? AXDefaultSeperatorColor).CGColor
                         var rect = seperatorLayer.frame
-                        rect.origin.x = seperatorInsets?.left ?? 0
-                        rect.size.width = self.bounds.width - ((seperatorInsets?.left)! + (seperatorInsets?.right)!) ?? 0
+                        rect.origin.x = seperatorInsets.left ?? 0
+                        rect.size.width = self.bounds.width - (seperatorInsets.left + seperatorInsets.right) ?? 0
                         seperatorLayer.frame = rect
                     }
                 }
@@ -987,33 +1044,37 @@ public class AXPickerView: UIView {
     
     /// Called when button has been clicked
     @objc private func buttonClicked(sender: UIButton) -> () {
-        hide(animated: true)
-        delegate?.pickerView?(self, didSelectedItem:sender.titleForState(.Normal) ?? "", atIndex: sender.tag - Int(1))
-        if let aExecuting = _executing {
+        hide(animated: true) { () -> Void in
+            self.delegate?.pickerView?(self, didSelectedItem:sender.titleForState(.Normal) ?? "", atIndex: sender.tag - Int(1))
+        }
+        if let aExecuting = self._executing {
             aExecuting(selectedTitle: sender.titleForState(.Normal) ?? "", atIndex: sender.tag - Int(1), inPickerView: self)
         }
     }
     /// Called when completed
     @objc private func didConfirm(sender: UIButton) -> () {
-        hide(animated: true)
-        delegate?.pickerViewDidConfirm?(self)
-        if let aCompletion = _completion {
+        hide(animated: true) { () -> Void in
+            self.delegate?.pickerViewDidConfirm?(self)
+        }
+        if let aCompletion = self._completion {
             aCompletion(pickerView: self)
         }
     }
     /// Called when canceled
     @objc private func didCancle(sender: UIButton) -> () {
-        hide(animated: true)
-        delegate?.pickerViewDidCancle?(self)
-        if let aRevoking = _revoking {
+        hide(animated: true) { () -> Void in
+            self.delegate?.pickerViewDidCancle?(self)
+        }
+        if let aRevoking = self._revoking {
             aRevoking(pickerView: self)
         }
     }
     /// Called when touched background view
     @objc private func didTouchBackground(sender: UIControl) -> () {
-        hide(animated: true)
-        delegate?.pickerViewDidCancle?(self)
-        if let aRevoking = _revoking {
+        hide(animated: true) { () -> Void in
+            self.delegate?.pickerViewDidCancle?(self)
+        }
+        if let aRevoking = self._revoking {
             aRevoking(pickerView: self)
         }
     }
@@ -1038,7 +1099,13 @@ private let minWidth:CGFloat = 110
 typealias AXImagePickerCompletion = (picker: AXPickerView, images: [UIImage]) -> Void
 /// Image picker executing block
 let imagePickerExecuting: AXExecuting = { (title: String, index: Int, pickerView: AXPickerView) -> Void in
-    switch index {
+    var indexInfo: Int = 0
+    if pickerView._containsCamera {
+        indexInfo = index
+    } else {
+        indexInfo = index + 1
+    }
+    switch indexInfo {
     case 0:
         UIImagePickerController.requestAuthorizationOfCamera(completion: { () -> Void in
                 let cameraPickerController = UIImagePickerController()
@@ -1046,8 +1113,9 @@ let imagePickerExecuting: AXExecuting = { (title: String, index: Int, pickerView
                 if UIImagePickerController.isSourceTypeAvailable(.Camera) {
                     cameraPickerController.sourceType = .Camera
                     if let rootViewController = pickerView.window?.rootViewController {
+                        pickerView._removeFromSuperViewOnHide = false
                         rootViewController.presentViewController(cameraPickerController, animated: true) { () -> Void in
-                            pickerView._removeFromSuperViewOnHide = false
+                            
                         }
                     }
                 } else {
@@ -1082,8 +1150,9 @@ let imagePickerExecuting: AXExecuting = { (title: String, index: Int, pickerView
                     let imagePickerController = AXImagePickerController()
                     imagePickerController.axDelegate = pickerView
                     imagePickerController.allowsMultipleSelection = pickerView._allowsMultipleSelection
+                    pickerView._removeFromSuperViewOnHide = false
                     rootViewController.presentViewController(imagePickerController, animated: true) { () -> Void in
-                        pickerView._removeFromSuperViewOnHide = false
+                        
                     }
                 }
             }) { () -> Void in
@@ -1126,16 +1195,16 @@ let imagePickerExecuting: AXExecuting = { (title: String, index: Int, pickerView
 @available(iOS 7.0, *)
 /// Convenient way to show a picker view with custom configurations
 extension AXPickerView: UIPickerViewDelegate, UIPickerViewDataSource {
-    class func showInWindow(window: UIWindow, animated:Bool, style:AXPickerViewStyle = .Normal, items:[String]? = nil, title: String? = nil, tips: String? = nil, configuration: AXConfiguration? = nil, completion: AXCompletion? = nil, revoking: AXRevoking? = nil, executing: AXExecuting? = nil) -> () {
+    class public func showInWindow(window: UIWindow, animated:Bool, style:AXPickerViewStyle = .Normal, items:[String]? = nil, title: String? = nil, tips: String? = nil, configuration: AXConfiguration? = nil, completion: AXCompletion? = nil, revoking: AXRevoking? = nil, executing: AXExecuting? = nil) -> () {
         showInView(window, animated: animated, style: style, items: items, title: title, tips: tips, configuration: configuration, completion: completion, revoking: revoking, executing: executing)
     }
     
-    class func showInWindow(window: UIWindow, animated:Bool, style:AXPickerViewStyle = .Normal, items:[String]? = nil, title: String? = nil, customView: UIView? = nil, configuration: AXConfiguration? = nil, completion: AXCompletion? = nil, revoking: AXRevoking? = nil, executing: AXExecuting? = nil) -> () {
+    class public func showInWindow(window: UIWindow, animated:Bool, style:AXPickerViewStyle = .Normal, items:[String]? = nil, title: String? = nil, customView: UIView? = nil, configuration: AXConfiguration? = nil, completion: AXCompletion? = nil, revoking: AXRevoking? = nil, executing: AXExecuting? = nil) -> () {
         showInView(window, animated: animated, style: style, items: items, title: title, customView: customView, configuration: configuration, completion: completion, revoking: revoking, executing: executing)
     }
     
     @available(iOS 7.0, *)
-    class func showInView(view: UIView, animated: Bool, style:AXPickerViewStyle = .Normal, items:[String]? = nil, title: String? = nil, tips: String? = nil, configuration: AXConfiguration? = nil, completion: AXCompletion? = nil, revoking: AXRevoking? = nil, executing: AXExecuting? = nil) -> () {
+    class public func showInView(view: UIView, animated: Bool, style:AXPickerViewStyle = .Normal, items:[String]? = nil, title: String? = nil, tips: String? = nil, configuration: AXConfiguration? = nil, completion: AXCompletion? = nil, revoking: AXRevoking? = nil, executing: AXExecuting? = nil) -> () {
         let picker = AXPickerView(style: style, items: items)
         configuration?(pickerView: picker)
         picker.view = view
@@ -1163,31 +1232,83 @@ extension AXPickerView: UIPickerViewDelegate, UIPickerViewDataSource {
         picker.show(animated: animated, completion: completion, revoking: revoking, executing: executing)
     }
     
-    class func showInView(view: UIView, animated: Bool, style:AXPickerViewStyle = .Normal, items:[String]? = nil, title: String? = nil, customView: UIView? = nil, configuration: AXConfiguration? = nil, completion: AXCompletion? = nil, revoking: AXRevoking? = nil, executing: AXExecuting? = nil) -> () {
+    class public func showInView(view: UIView, animated: Bool, style:AXPickerViewStyle = .Normal, items:[String]? = nil, title: String? = nil, customView: UIView? = nil, configuration: AXConfiguration? = nil, completion: AXCompletion? = nil, revoking: AXRevoking? = nil, executing: AXExecuting? = nil) -> () {
         let picker = AXPickerView(style: style, items: items)
-        
-        if let config = configuration {
-            config(pickerView: picker)
-        }
-        
+        configuration?(pickerView: picker)
         picker.view = view
         picker.title = title
         picker.customView = customView
-        
         picker.show(animated: animated, completion: completion, revoking: revoking, executing: executing)
+    }
+}
+@available(iOS 7.0, *)
+extension AXPickerView {
+    class public func showTipsInWindow(window: UIWindow, animated:Bool, items:[String]? = nil, title: String? = nil, tips: String? = nil, configuration: AXConfiguration? = nil, completion: AXCompletion? = nil, revoking: AXRevoking? = nil, executing: AXExecuting? = nil) -> ()
+    {
+        self.showTipsInView(window, animated: animated, items: items, title: title, tips: tips, configuration: configuration, completion: completion, revoking: revoking, executing: executing)
+    }
+    
+    class public func showNormalInWindow(window: UIWindow, animated:Bool, items:[String]? = nil, title: String? = nil, customView: UIView? = nil, configuration: AXConfiguration? = nil, completion: AXCompletion? = nil, revoking: AXRevoking? = nil, executing: AXExecuting? = nil) -> ()
+    {
+        self.showNormalInView(window, animated: animated, items: items, title: title, customView: customView, configuration: configuration, completion: completion, revoking: revoking, executing: executing)
+    }
+    
+    class public func showDatePickerInWindow(window: UIWindow, animated: Bool, title: String? = nil, configuration: AXConfiguration? = nil, completion: AXCompletion? = nil, revoking: AXRevoking? = nil)
+    {
+        self.showDatePickerInView(window, animated: animated, title: title, configuration: configuration, completion: completion, revoking: revoking)
+    }
+    
+    class public func showPickerInWindow(window: UIWindow, animated: Bool, title: String? = nil, configuration: AXConfiguration? = nil, completion: AXCompletion? = nil, revoking: AXRevoking? = nil)
+    {
+        self.showPickerInView(window, animated: animated, title: title, configuration: configuration, completion: completion, revoking: revoking)
+    }
+    
+    class public func showTipsInView(view: UIView, animated: Bool, items:[String]? = nil, title: String? = nil, tips: String? = nil, configuration: AXConfiguration? = nil, completion: AXCompletion? = nil, revoking: AXRevoking? = nil, executing: AXExecuting? = nil) -> ()
+    {
+        self.showInView(view, animated: animated, style: .Normal, items: items, title: title, tips: tips, configuration: configuration, completion: completion, revoking: revoking, executing: executing)
+    }
+    
+    class public func showNormalInView(view: UIView, animated: Bool, items:[String]? = nil, title: String? = nil, customView: UIView? = nil, configuration: AXConfiguration? = nil, completion: AXCompletion? = nil, revoking: AXRevoking? = nil, executing: AXExecuting? = nil) -> ()
+    {
+        self.showInView(view, animated: animated, style: .Normal, items: items, title: title, customView: customView, configuration: configuration, completion: completion, revoking: revoking, executing: executing)
+    }
+    
+    class public func showDatePickerInView(view: UIView, animated: Bool, title: String? = nil, configuration: AXConfiguration? = nil, completion: AXCompletion? = nil, revoking: AXRevoking? = nil)
+    {
+        let picker = AXPickerView(style: .DatePicker, items: nil)
+        configuration?(pickerView: picker)
+        picker.view = view
+        picker.title = title
+        picker.show(animated: animated, completion: completion, revoking: revoking)
+    }
+    
+    class public func showPickerInView(view: UIView, animated: Bool, title: String? = nil, configuration: AXConfiguration? = nil, completion: AXCompletion? = nil, revoking: AXRevoking? = nil)
+    {
+        let picker = AXPickerView(style: .CommonPicker, items: nil)
+        configuration?(pickerView: picker)
+        picker.view = view
+        picker.title = title
+        picker.show(animated: animated, completion: completion, revoking: revoking)
     }
 }
 
 @available(iOS 7.0, *)
 extension AXPickerView: UICollectionViewDelegateFlowLayout, UICollectionViewDelegate, UICollectionViewDataSource, UIImagePickerControllerDelegate, UINavigationControllerDelegate, AXImagePickerControllerDelegate {
     
-    class func showImagePickerInWindow(window: UIWindow, animated: Bool, allowsMultipleSelection: Bool = false, configuration: AXConfiguration? = nil, completion: AXCompletion? = nil, revoking: AXRevoking? = nil, imagePickerBlock: AXImagePickerCompletion? = nil) -> Void {
-        self.showImagePickerInView(window, animated: animated, allowsMultipleSelection: allowsMultipleSelection, configuration: configuration, completion: completion, revoking: revoking, imagePickerBlock: imagePickerBlock)
+    class func showImagePickerInWindow(window: UIWindow, animated: Bool, allowsMultipleSelection: Bool = false, containsCamera: Bool = true, configuration: AXConfiguration? = nil, completion: AXCompletion? = nil, revoking: AXRevoking? = nil, imagePickerBlock: AXImagePickerCompletion? = nil) -> Void {
+        self.showImagePickerInView(window, animated: animated, allowsMultipleSelection: allowsMultipleSelection, containsCamera: containsCamera, configuration: configuration, completion: completion, revoking: revoking, imagePickerBlock: imagePickerBlock)
     }
     
-    class func showImagePickerInView(view: UIView, animated: Bool, allowsMultipleSelection: Bool = false, configuration: AXConfiguration? = nil, completion: AXCompletion? = nil, revoking: AXRevoking? = nil, imagePickerBlock: AXImagePickerCompletion? = nil) -> Void {
+    class func showImagePickerInView(view: UIView, animated: Bool, allowsMultipleSelection: Bool = false, containsCamera: Bool = true, configuration: AXConfiguration? = nil, completion: AXCompletion? = nil, revoking: AXRevoking? = nil, imagePickerBlock: AXImagePickerCompletion? = nil) -> Void {
         AXImagePickerController.requestAuthorization(completion: { () -> Void in
-                let picker = AXPickerView(style: .Normal, items: ["拍摄", "从相册选取"])
+                var items: [String] = []
+                if containsCamera {
+                    items = ["拍摄", "从相册选取"]
+                } else {
+                    items = ["从相册选取"]
+                }
+                let picker = AXPickerView(style: .Normal, items: items)
+                picker._containsCamera = containsCamera
                 picker.seperatorInsets = UIEdgeInsetsZero
                 picker.view = view
                 configuration?(pickerView: picker)
@@ -1295,22 +1416,40 @@ extension AXPickerView: UICollectionViewDelegateFlowLayout, UICollectionViewDele
         if collectionView.allowsMultipleSelection {
             if let count = collectionView.indexPathsForSelectedItems()?.count {
                 if count > 0 {
-                    self.items = ["拍摄", "从相册选取", "已选择\(count)张"]
-                    self.itemConfigs = [(2, AXDefaultSelectedColor, nil)]
+                    if self._containsCamera {
+                        self.items = ["拍摄", "从相册选取", "已选择\(count)张"]
+                        self.itemConfigs = [(2, AXDefaultSelectedColor, nil)]
+                    } else {
+                        self.items = ["从相册选取", "已选择\(count)张"]
+                        self.itemConfigs = [(1, AXDefaultSelectedColor, nil)]
+                    }
                     return
                 }
             }
-            self.items = ["拍摄", "从相册选取"]
+            if self._containsCamera {
+                self.items = ["拍摄", "从相册选取"]
+            } else {
+                self.items = ["从相册选取"]
+            }
             self.itemConfigs?.removeAll()
         } else {
             if let count = collectionView.indexPathsForSelectedItems()?.count {
                 if count > 0 {
-                    self.items = ["拍摄", "从相册选取", "发送"]
-                    self.itemConfigs = [(2, AXDefaultSelectedColor, nil)]
+                    if self._containsCamera {
+                        self.items = ["拍摄", "从相册选取", "选择"]
+                        self.itemConfigs = [(2, AXDefaultSelectedColor, nil)]
+                    } else {
+                        self.items = ["从相册选取", "选择"]
+                        self.itemConfigs = [(1, AXDefaultSelectedColor, nil)]
+                    }
                     return
                 }
             }
-            self.items = ["拍摄", "从相册选取"]
+            if self._containsCamera {
+                self.items = ["拍摄", "从相册选取"]
+            } else {
+                self.items = ["从相册选取"]
+            }
             self.itemConfigs?.removeAll()
         }
     }
@@ -1318,12 +1457,21 @@ extension AXPickerView: UICollectionViewDelegateFlowLayout, UICollectionViewDele
     public func collectionView(collectionView: UICollectionView, didDeselectItemAtIndexPath indexPath: NSIndexPath) {
         if let count = collectionView.indexPathsForSelectedItems()?.count {
             if count > 0 {
-                self.items = ["拍摄", "从相册选取", "已选择\(count)张"]
-                self.itemConfigs = [(2, AXDefaultSelectedColor, nil)]
+                if self._containsCamera {
+                    self.items = ["拍摄", "从相册选取", "已选择\(count)张"]
+                    self.itemConfigs = [(2, AXDefaultSelectedColor, nil)]
+                } else {
+                    self.items = ["从相册选取", "已选择\(count)张"]
+                    self.itemConfigs = [(1, AXDefaultSelectedColor, nil)]
+                }
                 return
             }
         }
-        self.items = ["拍摄", "从相册选取"]
+        if self._containsCamera {
+            self.items = ["拍摄", "从相册选取"]
+        } else {
+            self.items = ["从相册选取"]
+        }
         self.itemConfigs?.removeAll()
     }
     
