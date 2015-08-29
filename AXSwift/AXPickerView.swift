@@ -1290,7 +1290,7 @@ extension AXPickerView {
         picker.title = title
         picker.show(animated: animated, completion: completion, revoking: revoking)
     }
-}
+}    
 
 @available(iOS 7.0, *)
 extension AXPickerView: UICollectionViewDelegateFlowLayout, UICollectionViewDelegate, UICollectionViewDataSource, UIImagePickerControllerDelegate, UINavigationControllerDelegate, AXImagePickerControllerDelegate {
