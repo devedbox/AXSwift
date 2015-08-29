@@ -1289,7 +1289,7 @@ extension AXPickerView {
         picker.view = view
         picker.title = title
         picker.show(animated: animated, completion: completion, revoking: revoking)
-    }
+    }    
 }
 
 @available(iOS 7.0, *)
