@@ -8,7 +8,7 @@
 
 import UIKit
 
-class ViewController: UIViewController {
+class ViewController: UIViewController, AXPickerViewDataSource, AXPickerViewDelegate {
     
     var pickerView = AXPickerView(style: .Normal, items: ["BeiJing", "ShangHai", "HongKong", "ChengDu"])
     let seperatorConfigs:[AXPickerViewSeperatorConfiguration] = [(0, nil, UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0), nil),(1, nil, UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0), nil),(2, nil, UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0), nil),(3, nil, UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0), nil)]
@@ -74,6 +74,7 @@ class ViewController: UIViewController {
         pickerView.view = view!
         pickerView.delegate = self
         
+        
 //        let items = ["nn", "mm"]
 //        for (index, indexPath) in items.enumerate() {
 //            
@@ -111,7 +112,6 @@ class ViewController: UIViewController {
         
 //        self.pickerView.show(animated: true)
 //        AXPickerView.showInWindow(view.window!, animated: true, style: .Normal, items: cities, title: "城市")
-//        AXPickerView.showInWindow(view.window!, animated: true, style: .DatePicker)
         
         
 //        let customView = UIImageView(image: UIImage(imageLiteral: "timo2.jpg"))
@@ -141,6 +141,18 @@ class ViewController: UIViewController {
         
         if sender.tag == 1 {
             AXPickerView.showImagePickerInView(view, animated: true, allowsMultipleSelection: true)
+//            AXPickerView.showInWindow(view.window!, animated: true, style: .DatePicker)
+//            AXPickerView.showDatePickerInView(view, animated: true, title: "设置时间", configuration: { (pickerView) -> () in
+//
+//                }, completion: { (pickerView) -> () in
+//                    
+//                }, revoking: { (pickerView) -> () in
+//                    
+//                })
+//            AXPickerView.showPickerInView(view.window!, animated: true, title: "Picker", configuration: { (pickerView) -> () in
+//                pickerView.delegate = self
+//                pickerView.dataSource = self
+//                }, completion: nil, revoking: nil)
         } else if sender.tag == 2 {
 //            AXPracticalHUD.sharedHUD.showText(inView: self.view, text: "Bonjour", detail: "Give you a message") { (HUD) -> Void in
 //                HUD.translucent = true
@@ -178,7 +190,7 @@ class ViewController: UIViewController {
     }
 }
 
-extension ViewController: AXPickerViewDelegate {
+extension ViewController {
     func pickerViewDidShow(pickerView: AXPickerView) {
         let customView = UIImageView(image: UIImage(named: "timo.jpg"))
         customView.frame = CGRectMake(0, 0, self.view.bounds.width, 120)
@@ -208,5 +220,38 @@ extension ViewController: AXPickerViewDelegate {
         self.pickerView = AXPickerView(style: .Normal, items: ["BeiJing", "ShangHai", "HongKong", "ChengDu"])
         self.pickerView.view = view!
         self.pickerView.delegate = self
+    }
+}
+
+extension ViewController {
+    func numberOfComponentsInPickerView(pickerView: UIPickerView) -> Int {
+        return 3
+    }
+    func pickerView(pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
+        return 30
+    }
+    func pickerView(pickerView: UIPickerView, widthForComponent component: Int) -> CGFloat {
+        return view.bounds.width / 3
+    }
+    func pickerView(pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
+        return "Hello"
+    }
+    func pickerView(pickerView: UIPickerView, viewForRow row: Int, forComponent component: Int, reusingView view: UIView?) -> UIView {
+        let myView: UILabel = UILabel(frame: CGRectMake(0.0, 0.0, self.view.bounds.size.width / 3, 30))
+        myView.textAlignment = .Center
+        myView.font = UIFont.systemFontOfSize(17)
+        myView.backgroundColor = UIColor.clearColor()
+        if component == 0 {
+            myView.text = "Hello"
+        }
+        else if component == 1 {
+            myView.text = "Hello"
+        }
+        else {
+            myView.text = "Hello"
+        }
+        myView.textColor = UIColor.blackColor()
+        
+        return myView
     }
 }
