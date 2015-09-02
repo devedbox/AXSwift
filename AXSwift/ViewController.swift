@@ -75,6 +75,7 @@ class ViewController: UIViewController, AXPickerViewDataSource, AXPickerViewDele
         pickerView.delegate = self
         
         
+        
 //        let items = ["nn", "mm"]
 //        for (index, indexPath) in items.enumerate() {
 //            
@@ -90,10 +91,10 @@ class ViewController: UIViewController, AXPickerViewDataSource, AXPickerViewDele
 //        let HUD = AXPracticalHUD.showHUDInView(view, animated: true)
 //        HUD.translucent = true
         
-//        AXPracticalHUD.sharedHUD.cornerRadius = 0.0
-//        AXPracticalHUD.sharedHUD.margin = 0.0
+        AXPracticalHUD.sharedHUD.cornerRadius = 0.0
+        AXPracticalHUD.sharedHUD.margin = 0.0
         AXPracticalHUD.sharedHUD.lockBackground = false
-        AXPracticalHUD.sharedHUD.dimBackground = true
+//        AXPracticalHUD.sharedHUD.dimBackground = true
     }
     
     override func viewDidAppear(animated: Bool) {
@@ -159,15 +160,28 @@ class ViewController: UIViewController, AXPickerViewDataSource, AXPickerViewDele
 //                HUD.position  = .Top
 //                HUD.animation = .FlipIn
 //            }
-            AXPracticalHUD.sharedHUD.showSimple(inView: view, text: "Bonjour", detail: "Give you a message", configuration: { (HUD) -> Void in
+//            AXPracticalHUD.sharedHUD.showSimple(inView: view, text: "Bonjour", detail: "Give you a message", configuration: { (HUD) -> Void in
+//                HUD.translucent = true
+////                HUD.translucentStyle = .Light
+////                HUD.textColor = UIColor.blackColor()
+////                HUD.detailTextColor = UIColor.blackColor()
+////                HUD.activityIndicatorColor = UIColor.blackColor()
+//                HUD.position  = .Top
+//                HUD.animation = .FlipIn
+//                HUD.hide(animated: true, afterDelay: 2.0)
+//            })
+            AXPracticalHUD.sharedHUD.showColorfulProgress(inView: view, text: nil, detail: nil, configuration: { (HUD) -> Void in
                 HUD.translucent = true
-//                HUD.translucentStyle = .Light
-//                HUD.textColor = UIColor.blackColor()
-//                HUD.detailTextColor = UIColor.blackColor()
-//                HUD.activityIndicatorColor = UIColor.blackColor()
-                HUD.position  = .Center
+                HUD.position  = .Top
                 HUD.animation = .Fade
-                HUD.hide(animated: true, afterDelay: 2.0)
+                HUD.progress = 0.5
+                HUD.contentInsets = UIEdgeInsetsMake(19.0, 0.0, 0.0, 0.0)
+                HUD.cornerRadius = 0.0
+                HUD.margin = 0.0
+                HUD.lockBackground = false
+                HUD.restoreEnabled = true
+                HUD.minSize = CGSizeMake(0, 20)
+                HUD.hide(animated: true, afterDelay: 5.0)
             })
             
         } else if sender.tag == 3 {

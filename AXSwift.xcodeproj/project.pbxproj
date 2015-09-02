@@ -192,6 +192,7 @@
 		0138426B1B88C8910005AFED /* Main.strings in Resources */ = {isa = PBXBuildFile; fileRef = 0138425B1B88C8910005AFED /* Main.strings */; };
 		0138426D1B88CA870005AFED /* timo.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 0138426C1B88CA870005AFED /* timo.jpg */; };
 		013E3CB71B8B4B7800BDA3FD /* AXPracticalHUD.bundle in Resources */ = {isa = PBXBuildFile; fileRef = 013E3CB61B8B4B7800BDA3FD /* AXPracticalHUD.bundle */; };
+		014184A71B968FE1007F07E2 /* AXTmp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 014184A61B968FE1007F07E2 /* AXTmp.swift */; settings = {ASSET_TAGS = (); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -561,6 +562,7 @@
 		0138425C1B88C8910005AFED /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Main.strings"; sourceTree = "<group>"; };
 		0138426C1B88CA870005AFED /* timo.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = timo.jpg; sourceTree = "<group>"; };
 		013E3CB61B8B4B7800BDA3FD /* AXPracticalHUD.bundle */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.plug-in"; path = AXPracticalHUD.bundle; sourceTree = "<group>"; };
+		014184A61B968FE1007F07E2 /* AXTmp.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AXTmp.swift; sourceTree = "<group>"; };
 		01CBCA661B5AAE370066B2B6 /* AXSwift.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AXSwift.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -956,6 +958,7 @@
 				013E3CB61B8B4B7800BDA3FD /* AXPracticalHUD.bundle */,
 				0138424B1B88C8910005AFED /* Assets.xcassets */,
 				012AD5101B8FF9B40051F975 /* AXSwift-Bridging-Header.h */,
+				014184A61B968FE1007F07E2 /* AXTmp.swift */,
 				012AD5111B8FFBB90051F975 /* pop.framework */,
 				012AD3191B8FF79A0051F975 /* GPUImage */,
 				0138426C1B88CA870005AFED /* timo.jpg */,
@@ -1232,6 +1235,7 @@
 				012AD4DE1B8FF79B0051F975 /* GPUImageRGBOpeningFilter.m in Sources */,
 				012AD4D41B8FF79B0051F975 /* GPUImagePolarPixellateFilter.m in Sources */,
 				012AD4E81B8FF79B0051F975 /* GPUImageSobelEdgeDetectionFilter.m in Sources */,
+				014184A71B968FE1007F07E2 /* AXTmp.swift in Sources */,
 				012AD4E31B8FF79B0051F975 /* GPUImageSharpenFilter.m in Sources */,
 				012AD4FD1B8FF79B0051F975 /* GPUImageTwoInputFilter.m in Sources */,
 				0138425D1B88C8910005AFED /* AppDelegate.swift in Sources */,

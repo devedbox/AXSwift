@@ -26,6 +26,8 @@ public enum AXPracticalHUDMode: Int {
    case CustomView
     /** Shows only labels */
    case Text
+    /** HUD is shown using a horizontal progress bar */
+   case DeterminateColorfulHorizontalBar
 }
 
 public enum AXPracticalHUDAnimation: Int {
@@ -48,6 +50,17 @@ public enum AXPracticalHUDTranslucentStyle: Int {
 
 @objc public protocol AXPracticalHUDDelegate {
     optional func HUDDidHidden(HUD: AXPracticalHUD) -> Void
+}
+
+private func defaultColors() -> [CGColor] {
+    var colors: [CGColor] = []
+    var hue: Int = 0
+    while hue <= 360 {
+        let color = UIColor(hue: 1.0 * CGFloat(hue) / 360.0, saturation: 1.0, brightness: 1.0, alpha: 1.0)
+        colors.append(color.CGColor)
+        hue += 5
+    }
+    return colors
 }
 
 public typealias AXPracticalHUDCompletionBlock = () -> Void
@@ -158,6 +171,8 @@ public class AXPracticalHUD: UIView {
                     (self.indicator as! AXBarProgressView).value = self.progress
                 } else if self.indicator is AXRoundProgressView {
                     (self.indicator as! AXRoundProgressView).value = self.progress
+                } else if self.indicator is AXGradientProgressView {
+                    (self.indicator as! AXGradientProgressView).progress = self.progress
                 }
             }
         }
@@ -493,6 +508,94 @@ public class AXPracticalHUD: UIView {
                 
                 CGContextFillPath(context);
             }
+        }
+    }
+    
+    class AXGradientProgressView: UIView {
+        var colors: [CGColor] = defaultColors() {
+            didSet {
+                executeOnMainThread { () -> Void in
+                    self.gradientLayer.colors = self.colors
+                }
+            }
+        }
+        
+        var progress: CGFloat = 0.0 {
+            didSet {
+                executeOnMainThread { () -> Void in
+                    self.setNeedsLayout()
+                }
+            }
+        }
+        
+        var duration: NSTimeInterval = 0.08
+        
+        private lazy var gradientLayer: CAGradientLayer = get { () -> AnyObject? in
+            let layer = CAGradientLayer()
+            layer.startPoint = CGPointMake(0.0, 0.5)
+            layer.endPoint = CGPointMake(1.0, 0.5)
+            layer.colors = self.colors
+            return layer
+            } as! CAGradientLayer
+        
+        convenience init() {
+            self.init(frame: CGRectMake(0, 0, UIScreen.mainScreen().bounds.width, 1.0))
+        }
+        
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+            initializer()
+        }
+        
+        required init?(coder aDecoder: NSCoder) {
+            fatalError("init(coder:) has not been implemented")
+        }
+        
+        private final func initializer() -> Void {
+            layer.addSublayer(gradientLayer)
+        }
+        
+        override func didMoveToSuperview() {
+            super.didMoveToSuperview()
+            
+            if let _ = superview {
+                performAnimation()
+            } else {
+                gradientLayer.removeAnimationForKey("colors")
+            }
+        }
+        
+        override func sizeThatFits(size: CGSize) -> CGSize {
+            var mySize = super.sizeThatFits(size)
+            mySize.height = 1.0
+            return mySize
+        }
+        
+        override func layoutSubviews() {
+            super.layoutSubviews()
+            
+            sizeToFit()
+            
+            var rect = gradientLayer.frame
+            rect.size.width = bounds.width * min(progress, 1.0)
+            rect.size.height = bounds.height
+            gradientLayer.frame = rect
+        }
+        
+        @objc private func performAnimation() -> Void {
+            let color = colors.removeLast()
+            colors.insert(color, atIndex: 0)
+            let animation = CABasicAnimation(keyPath: "colors")
+            animation.toValue = colors
+            animation.duration = self.duration
+            animation.removedOnCompletion = true
+            animation.fillMode = kCAFillModeForwards
+            animation.delegate = self
+            gradientLayer.addAnimation(animation, forKey: "colors")
+        }
+        
+        override func animationDidStop(anim: CAAnimation, finished flag: Bool) {
+            self.performSelector("performAnimation", onThread: NSThread.mainThread(), withObject: nil, waitUntilDone: false, modes: [NSDefaultRunLoopMode])
         }
     }
     
@@ -983,6 +1086,10 @@ public class AXPracticalHUD: UIView {
                 }
                 contentView.addSubview(aIndicator)
             }
+        case .DeterminateColorfulHorizontalBar:
+            indicator?.removeFromSuperview()
+            self.indicator = AXGradientProgressView()
+            contentView.addSubview(indicator!)
         default :
             indicator?.removeFromSuperview()
             indicator = nil;
@@ -1174,6 +1281,10 @@ extension AXPracticalHUD {
         __show(inView: view, mode: .DeterminateHorizontalBar, text: text, detail: detail, customView: customView, configuration: configuration)
     }
     
+    func showColorfulProgress(inView view: UIView, text: String? = nil, detail: String? = nil, configuration: ((HUD: AXPracticalHUD) -> Void)? = nil) -> Void {
+        __show(inView: view, mode: .DeterminateColorfulHorizontalBar, text: text, detail: detail, customView: customView, configuration: configuration)
+    }
+    
     func showText(inView view: UIView, text: String = "加载中", detail: String? = nil, configuration: ((HUD: AXPracticalHUD) -> Void)? = nil) -> Void {
         __show(inView: view, mode: .Text, text: text, detail: detail, customView: customView, configuration: configuration)
     }
@@ -1193,6 +1304,126 @@ extension AXPracticalHUD {
         executeOnMainThread { () -> Void in
             let imageView = UIImageView(image: UIImage(named: filePath(withBundleName: "AXPracticalHUD", fileName: "ax_hud_success")))
             self.__show(inView: view, mode: .CustomView, text: text, detail: detail, customView: imageView, configuration: configuration)
+        }
+    }
+}
+/// Objective-C support
+extension AXPracticalHUD {
+    func obj_showPie(inView view: UIView, onTop: Bool, usingFade: Bool, text: String? = nil, detail: String? = nil, configuration: ((HUD: AXPracticalHUD) -> Void)? = nil) -> Void {
+        __show(inView: view, mode: .Determinate, text: text, detail: detail, customView: customView) { (HUD: AXPracticalHUD) -> Void in
+            if onTop {
+                HUD.position = .Top
+            } else {
+                HUD.position = .Bottom
+            }
+            if usingFade {
+                HUD.animation = .Fade
+            } else {
+                HUD.animation = .FlipIn
+            }
+            configuration?(HUD: HUD)
+        }
+    }
+    
+    func obj_showProgress(inView view: UIView, onTop: Bool, usingFade: Bool, text: String? = nil, detail: String? = nil, configuration: ((HUD: AXPracticalHUD) -> Void)? = nil) -> Void {
+        __show(inView: view, mode: .DeterminateHorizontalBar, text: text, detail: detail, customView: customView) { (HUD: AXPracticalHUD) -> Void in
+            if onTop {
+                HUD.position = .Top
+            } else {
+                HUD.position = .Bottom
+            }
+            if usingFade {
+                HUD.animation = .Fade
+            } else {
+                HUD.animation = .FlipIn
+            }
+            configuration?(HUD: HUD)
+        }
+    }
+    
+    func obj_showColorfulProgress(inView view: UIView, onTop: Bool, usingFade: Bool, text: String? = nil, detail: String? = nil, configuration: ((HUD: AXPracticalHUD) -> Void)? = nil) -> Void {
+        __show(inView: view, mode: .DeterminateColorfulHorizontalBar, text: text, detail: detail, customView: customView) { (HUD: AXPracticalHUD) -> Void in
+            if onTop {
+                HUD.position = .Top
+            } else {
+                HUD.position = .Bottom
+            }
+            if usingFade {
+                HUD.animation = .Fade
+            } else {
+                HUD.animation = .FlipIn
+            }
+            configuration?(HUD: HUD)
+        }
+    }
+    
+    func obj_showText(inView view: UIView, onTop: Bool, usingFade: Bool, text: String = "加载中", detail: String? = nil, configuration: ((HUD: AXPracticalHUD) -> Void)? = nil) -> Void {
+        __show(inView: view, mode: .Text, text: text, detail: detail, customView: customView) { (HUD: AXPracticalHUD) -> Void in
+            if onTop {
+                HUD.position = .Top
+            } else {
+                HUD.position = .Bottom
+            }
+            if usingFade {
+                HUD.animation = .Fade
+            } else {
+                HUD.animation = .FlipIn
+            }
+            configuration?(HUD: HUD)
+        }
+    }
+    
+    func obj_showSimple(inView view: UIView, onTop: Bool, usingFade: Bool, text: String? = nil, detail: String? = nil, configuration: ((HUD: AXPracticalHUD) -> Void)? = nil) -> Void {
+        __show(inView: view, mode: .Indeterminate, text: text, detail: detail, customView: customView) { (HUD: AXPracticalHUD) -> Void in
+            if onTop {
+                HUD.position = .Top
+            } else {
+                HUD.position = .Bottom
+            }
+            if usingFade {
+                HUD.animation = .Fade
+            } else {
+                HUD.animation = .FlipIn
+            }
+            configuration?(HUD: HUD)
+        }
+    }
+    
+    func obj_showError(inView view: UIView, onTop: Bool, usingFade: Bool, text: String? = nil, detail:String? = nil, configuration: ((HUD: AXPracticalHUD) -> Void)? = nil) -> Void {
+        executeOnMainThread { () -> Void in
+            let imageView = UIImageView(image: UIImage(named: filePath(withBundleName: "AXPracticalHUD", fileName: "ax_hud_error")))
+            self.__show(inView: view, mode: .CustomView, text: text, detail: detail, customView: imageView) { (HUD: AXPracticalHUD) -> Void in
+                if onTop {
+                    HUD.position = .Top
+                } else {
+                    HUD.position = .Bottom
+                }
+                if usingFade {
+                    HUD.animation = .Fade
+                } else {
+                    HUD.animation = .FlipIn
+                }
+                configuration?(HUD: HUD)
+            }
+        }
+    }
+    
+    func obj_showSuccess(inView view: UIView, onTop: Bool, usingFade: Bool, text: String? = nil, detail:String? = nil, configuration: ((HUD: AXPracticalHUD) -> Void)? = nil) -> Void {
+        executeOnMainThread { () -> Void in
+            let imageView = UIImageView(image: UIImage(named: filePath(withBundleName: "AXPracticalHUD", fileName: "ax_hud_success")))
+            self.__show(inView: view, mode: .CustomView, text: text, detail: detail, customView: imageView) { (HUD: AXPracticalHUD) -> Void in
+                if onTop {
+                    HUD.position = .Top
+                } else {
+                    HUD.position = .Bottom
+                }
+                if usingFade {
+                    HUD.animation = .Fade
+                } else {
+                    HUD.animation = .FlipIn
+                }
+                configuration?(HUD: HUD)
+            }
         }
     }
 }
